@@ -1,0 +1,49 @@
+---
+title: "Additional calculations for manuscript"
+output: html_notebook
+---
+
+```{r}
+source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_data.R")
+```
+```{r}
+# Number of cells in TET2 patient
+tet2_patient_singlet_data@meta.data %>% nrow()
+
+# Number of mutated and wildtype cells
+tet2_patient_singlet_data@meta.data %>%
+  select(Clone) %>%
+  table()
+
+# Number of mutated and wildtype cells by cell type
+tet2_patient_singlet_data@meta.data %>%
+  select(Clone, celltype.de) %>%
+  table()
+
+# Percentage mutated
+4425 / 8585
+
+```
+```{r}
+# Number of cells in DNMT3A patient
+dnmt3a_patient_singlet_data@meta.data %>% nrow()
+
+# Number of mutated and wildtype cells
+dnmt3a_patient_singlet_data@meta.data %>%
+  select(Clone) %>%
+  table()
+
+# Number of mutated and wildtype cells by cell type
+dnmt3a_patient_singlet_data@meta.data %>%
+  select(Clone, celltype.de) %>%
+  table()
+
+# Percentage mutated
+872 / 4457
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
