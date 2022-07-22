@@ -5,7 +5,7 @@ source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_d
 source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/image_formatting.R")
 
 
-output_dir = "figures/figure_4/"
+output_dir = "figures/supplemental/"
 gene_df = read_csv("input_data/Gene_class.csv")
 
 # pulling top genes for each cell type based on differential expression between stim and unstim (all patient data)
@@ -84,10 +84,10 @@ make_dotplot = function(data, sample_genotype, cell_type, patient_genes = FALSE)
             panel.grid.minor = element_blank()) +
       geom_hline(yintercept=seq(1.5, length(unique(all_pathway_genes$id))-0.5, 1), 
                  lwd=0.5, colour="grey") +
-      ggtitle(paste(sample_genotype, cell_type, stim_status)))
+      ggtitle(paste(sample_genotype, gsub("Mono", "Monocyte", cell_type))))
   
   filename = paste0(output_dir, "all_stim_patients_dotplot_", sample_genotype, "_", gsub(" ", "_", cell_type))
-  save_plot(filename, dotplot_compiled, width = 10)
+  save_plot(filename, dotplot_compiled, height = 6, width = 10)
 }
 
 

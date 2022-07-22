@@ -3,7 +3,6 @@
 
 source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_data.R")
 
-singlet_data = readRDS("rds_objects/singlet_data.rds")
 output_dir = "tables/supplemental/"
 
 # Prep data ---------------------------------------------------------------
@@ -20,12 +19,12 @@ stim_data = subset(singlet_data, idents = "STIM")
 # Prep for stats
 #ignore_cells = c("Eryth", "Plasmablast", "Platelet", "HSPC", "MAIT", "gdT", "DC", "CD4 Proliferating", "NK Proliferating", "ILC", "dnT", "CD8 Proliferating")
 #cell_types = unique(stim_data@meta.data$celltype.de) %>% setdiff(ignore_cells)
-cell_types = "CD8 T cell"
+cell_types = "CD4 T cell"
 sample_genotypes = c("DNMT3A", "TET2") #CHIP
 
 # Run stats ---------------------------------------------------------------
 plan(multisession)
-options('future.globals.maxSize' = 6000*1024^2)
+options('future.globals.maxSize' = 8000*1024^2)
 
 run_stats = function(data, stim_status) {
   for (cell_type in cell_types) {
@@ -211,6 +210,7 @@ run_tet2_dnmt3a_stats = function(data, stim_status) {
                            ident.2 = control_idents,
                            min.pct = 0,
                            min.diff.pct = -Inf,
+                           logfc.threshold = -Inf,
                            test.use = method,
                            assay = "RNA")
     
@@ -227,7 +227,7 @@ run_tet2_dnmt3a_stats = function(data, stim_status) {
   }
 }
 
-run_tet2_dnmt3a_stats(veh_data, "unstim")
-run_tet2_dnmt3a_stats(stim_data, "stim")
+future(run_tet2_dnmt3a_stats(veh_data, "unstim"))
+future(run_tet2_dnmt3a_stats(stim_data, "stim"))
 
 

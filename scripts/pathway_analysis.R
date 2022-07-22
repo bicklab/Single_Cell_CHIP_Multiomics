@@ -4,7 +4,7 @@
 source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/load_libraries.R")
 source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/image_formatting.R")
 
-output_dir = "figures/figure_2/"
+output_dir = "figures/supplemental/"
 
 # Load cluster profiler input
 organism = "org.Hs.eg.db"
@@ -31,14 +31,14 @@ find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = T
 
     # save plots
     filename = paste0(output_dir, "go/dotplot_", sample_genotype, "_", cell_type, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status)
-    title = paste(sample_genotype, gsub("_", " ", cell_type), paste0(stim_status, "ulated"))
+    title = paste(sample_genotype, gsub("_", " ", cell_type))
     (plot = dotplot(gse %>% filter(NES > 0), split = ".sign") + 
         format_colors_desc + 
         ggtitle(title) + 
         facet_grid(.~.sign) +
         theme(strip.background = element_blank(),
               strip.text.x = element_blank()))
-    save_plot(filename, plot)
+    save_plot(filename, plot, height = 6, width = 6)
   },
   error = function(cond) {
     message(cond)
@@ -47,12 +47,11 @@ find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = T
 }
 
 sample_genotypes = c("DNMT3A", "TET2")
-cell_types = c("CD14_Mono", "CD8_T_cell", "CD4_T_cell")
+cell_types = c("CD14_Mono", "CD8_T_cell")
 
 for (sample_genotype in sample_genotypes) {
   for (cell_type in cell_types) {
     find_pathways(sample_genotype, cell_type, stim_status = "unstim")
-    find_pathways(sample_genotype, cell_type, stim_status = "stim")
   }
 }
 

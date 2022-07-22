@@ -141,7 +141,7 @@ veh_data = subset(tet2_patient_singlet_data, idents = "VEH")
 
 ignore_cells = c("Eryth", "Plasmablast", "Platelet")
 cell_types = unique(stim_data@meta.data$celltype.de) %>% setdiff(ignore_cells)
-cell_types = "CD14 Mono"
+cell_types = "CD4 T cell"
 for (cell_type in cell_types) {
   stim_plotting_data = perform_stats(stim_data, cell_type, "TET2", "stim")
   veh_plotting_data = perform_stats(veh_data, cell_type, "TET2", "unstim")

@@ -5,7 +5,6 @@ source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_d
 source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/image_formatting.R")
 
 
-
 output_dir = "figures/supplemental/"
 
 control_count = 0
@@ -55,7 +54,7 @@ umap_patient_level_data = singlet_data@meta.data %>%
   format_no_axes_faceted)
 
 filename = paste0(output_dir, "umap_patient_level")
-save_plot(filename, umap_patient_level_plot, width = 10)
+save_plot(filename, umap_patient_level_plot, height = 8, width = 8)
 write_tsv(umap_patient_level_data, "tables/supplemental/umap_patient_level.tsv")
 
 

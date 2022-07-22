@@ -1851,9 +1851,468 @@ Clone         B CD14 Mono CD16 Mono CD4 CTL CD4 T cell CD8 T cell   DC  dnT  gdT
 <pre class="r"><code># Percentage mutated
 872 / 4457</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuMTk1NjQ3M1xuIn0= -->
-<pre><code>[1] 0.1956473</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuMTk1NlxuIn0= -->
+<pre><code>[1] 0.1956</code></pre>
 <!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOdW1iZXIgb2YgZGlmZmVyZW50aWFsbHkgZXhwcmVzc2VkIGdlbmVzXG5zZXR3ZChcIi9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9zdXBwbGVtZW50YWwvXCIpXG5gYGAifQ== -->
+<pre class="r"><code># Number of differentially expressed genes
+setwd(&quot;/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/supplemental/&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZzogVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdhcyBjaGFuZ2VkIHRvIC9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9zdXBwbGVtZW50YWwgaW5zaWRlIGEgbm90ZWJvb2sgY2h1bmsuIFRoZSB3b3JraW5nIGRpcmVjdG9yeSB3aWxsIGJlIHJlc2V0IHdoZW4gdGhlIGNodW5rIGlzIGZpbmlzaGVkIHJ1bm5pbmcuIFVzZSB0aGUga25pdHIgcm9vdC5kaXIgb3B0aW9uIGluIHRoZSBzZXR1cCBjaHVuayB0byBjaGFuZ2UgdGhlIHdvcmtpbmcgZGlyZWN0b3J5IGZvciBub3RlYm9vayBjaHVua3MuXG4ifQ== -->
+<pre><code>Warning: The working directory was changed to /home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/supplemental inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBURVQyIENEMTQgbW9ub2N5dGVzXG50ZXQyX2RhdGEgPSByZWFkX2NzdihcIlRFVDJfQ0QxNF9Nb25vX3Vuc3RpbV93aWxjb3guY3N2XCIpXG5gYGAifQ== -->
+<pre class="r"><code># TET2 CD14 monocytes
+tet2_data = read_csv(&quot;TET2_CD14_Mono_unstim_wilcox.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMzU1NjIgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 35562 Columns: 6
+── Column specification ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGV0Ml9kYXRhICU+JVxuICBmaWx0ZXIoYWJzKGF2Z19sb2cyRkMpID4gMC4yNSAmIHBfdmFsX2FkaiA8IDAuMDUpICU+JVxuICBucm93KClcbmBgYCJ9 -->
+<pre class="r"><code>tet2_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDQ2NVxuIn0= -->
+<pre><code>[1] 465</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBETk1UM0EgQ0QxNCBtb25vY3l0ZXNcbmRubXQzYV9kYXRhID0gcmVhZF9jc3YoXCJETk1UM0FfQ0QxNF9Nb25vX3Vuc3RpbV93aWxjb3guY3N2XCIpXG5gYGAifQ== -->
+<pre class="r"><code># DNMT3A CD14 monocytes
+dnmt3a_data = read_csv(&quot;DNMT3A_CD14_Mono_unstim_wilcox.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMzU1NjIgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 35562 Columns: 6
+── Column specification ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5tdDNhX2RhdGEgJT4lXG4gIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lXG4gIG5yb3coKVxuYGBgIn0= -->
+<pre class="r"><code>dnmt3a_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDcwNlxuIn0= -->
+<pre><code>[1] 706</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBURVQyIENEOCBUIGNlbGxzXG50ZXQyX2RhdGEgPSByZWFkX2NzdihcIlRFVDJfQ0Q4X1RfY2VsbF91bnN0aW1fd2lsY294LmNzdlwiKVxuYGBgIn0= -->
+<pre class="r"><code># TET2 CD8 T cells
+tet2_data = read_csv(&quot;TET2_CD8_T_cell_unstim_wilcox.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMzU1NjIgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 35562 Columns: 6
+── Column specification ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGV0Ml9kYXRhICU+JVxuICBmaWx0ZXIoYWJzKGF2Z19sb2cyRkMpID4gMC4yNSAmIHBfdmFsX2FkaiA8IDAuMDUpICU+JVxuICBucm93KClcbmBgYCJ9 -->
+<pre class="r"><code>tet2_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDE4NlxuIn0= -->
+<pre><code>[1] 186</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBETk1UM0EgQ0Q4IFQgY2VsbHNcbmRubXQzYV9kYXRhID0gcmVhZF9jc3YoXCJETk1UM0FfQ0Q4X1RfY2VsbF91bnN0aW1fd2lsY294LmNzdlwiKVxuYGBgIn0= -->
+<pre class="r"><code># DNMT3A CD8 T cells
+dnmt3a_data = read_csv(&quot;DNMT3A_CD8_T_cell_unstim_wilcox.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMzU1NjIgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 35562 Columns: 6
+── Column specification ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5tdDNhX2RhdGEgJT4lXG4gIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lXG4gIG5yb3coKVxuYGBgIn0= -->
+<pre class="r"><code>dnmt3a_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDQyMFxuIn0= -->
+<pre><code>[1] 420</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOdW1iZXIgb2YgY2VsbHMgaW4gZGlmZmVyZW50aWFsIGV4cHJlc3Npb24gY29tcGFyaXNvblxuc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgXG4gIGZpbHRlcihjZWxsdHlwZS5kZSA9PSBcIkNEMTQgTW9ub1wiICYgTVVUQVRJT04uR1JPVVAgPT0gXCJURVQyXCIpICU+JVxuICBucm93KClcbmBgYCJ9 -->
+<pre class="r"><code># Number of cells in differential expression comparison
+singlet_data@meta.data %&gt;% 
+  filter(celltype.de == &quot;CD14 Mono&quot; &amp; MUTATION.GROUP == &quot;TET2&quot;) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDEzNTIzXG4ifQ== -->
+<pre><code>[1] 13523</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgXG4gIGZpbHRlcihjZWxsdHlwZS5kZSA9PSBcIkNEMTQgTW9ub1wiICYgTVVUQVRJT04uR1JPVVAgPT0gXCJETk1UM0FcIikgJT4lXG4gIG5yb3coKVxuYGBgIn0= -->
+<pre class="r"><code>singlet_data@meta.data %&gt;% 
+  filter(celltype.de == &quot;CD14 Mono&quot; &amp; MUTATION.GROUP == &quot;DNMT3A&quot;) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDg2MDBcbiJ9 -->
+<pre><code>[1] 8600</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgXG4gIGZpbHRlcihjZWxsdHlwZS5kZSA9PSBcIkNEMTQgTW9ub1wiICYgTVVUQVRJT04uR1JPVVAgPT0gXCJDb250cm9sXCIpICU+JVxuICBucm93KClcbmBgYCJ9 -->
+<pre class="r"><code>singlet_data@meta.data %&gt;% 
+  filter(celltype.de == &quot;CD14 Mono&quot; &amp; MUTATION.GROUP == &quot;Control&quot;) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDU0MzlcbiJ9 -->
+<pre><code>[1] 5439</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOdW1iZXIgb2YgZGlmZmVyZW50aWFsbHkgZXhwcmVzc2VkIGdlbmVzIC0gaW5kaXZpZHVhbCBwYXRpZW50XG5zZXR3ZChcIi9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9zdXBwbGVtZW50YWwvXCIpXG5gYGAifQ== -->
+<pre class="r"><code># Number of differentially expressed genes - individual patient
+setwd(&quot;/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/supplemental/&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZzogVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdhcyBjaGFuZ2VkIHRvIC9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9zdXBwbGVtZW50YWwgaW5zaWRlIGEgbm90ZWJvb2sgY2h1bmsuIFRoZSB3b3JraW5nIGRpcmVjdG9yeSB3aWxsIGJlIHJlc2V0IHdoZW4gdGhlIGNodW5rIGlzIGZpbmlzaGVkIHJ1bm5pbmcuIFVzZSB0aGUga25pdHIgcm9vdC5kaXIgb3B0aW9uIGluIHRoZSBzZXR1cCBjaHVuayB0byBjaGFuZ2UgdGhlIHdvcmtpbmcgZGlyZWN0b3J5IGZvciBub3RlYm9vayBjaHVua3MuXG4ifQ== -->
+<pre><code>Warning: The working directory was changed to /home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/supplemental inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBURVQyIENEMTQgbW9ub2N5dGVzXG50ZXQyX2RhdGEgPSByZWFkX2NzdihcInBhdGllbnRfVEVUMl9DRDE0X01vbm9fd2lsY294X3Vuc3RpbS5jc3ZcIilcbmBgYCJ9 -->
+<pre class="r"><code># TET2 CD14 monocytes
+tet2_data = read_csv(&quot;patient_TET2_CD14_Mono_wilcox_unstim.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMzU1NjIgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 35562 Columns: 6
+── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGV0Ml9kYXRhICU+JVxuICBmaWx0ZXIoYWJzKGF2Z19sb2cyRkMpID4gMC4yNSAmIHBfdmFsX2FkaiA8IDAuMDUpICU+JVxuICBucm93KClcbmBgYCJ9 -->
+<pre class="r"><code>tet2_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDExMlxuIn0= -->
+<pre><code>[1] 112</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBETk1UM0EgQ0QxNCBtb25vY3l0ZXNcbmRubXQzYV9kYXRhID0gcmVhZF9jc3YoXCJwYXRpZW50X0ROTVQzQV9DRDE0X01vbm9fd2lsY294X3Vuc3RpbS5jc3ZcIilcbmBgYCJ9 -->
+<pre class="r"><code># DNMT3A CD14 monocytes
+dnmt3a_data = read_csv(&quot;patient_DNMT3A_CD14_Mono_wilcox_unstim.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMTMxOTkgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIixcIlxuY2hyICgxKTogR2VuZVxuZGJsICg1KTogcF92YWwsIGF2Z19sb2cyRkMsIHBjdC4xLCBwY3QuMiwgcF92YWxfYWRqXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 13199 Columns: 6
+── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;,&quot;
+chr (1): Gene
+dbl (5): p_val, avg_log2FC, pct.1, pct.2, p_val_adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5tdDNhX2RhdGEgJT4lXG4gIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lXG4gIG5yb3coKVxuYGBgIn0= -->
+<pre class="r"><code>dnmt3a_data %&gt;%
+  filter(abs(avg_log2FC) &gt; 0.25 &amp; p_val_adj &lt; 0.05) %&gt;%
+  nrow()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDRcbiJ9 -->
+<pre><code>[1] 4</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOdW1iZXIgb2YgYWdncmVnYXRlIGNvbnRyb2wgY2VsbHNcbnNpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lIFxuICBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJDb250cm9sXCIpICU+JVxuICBucm93KClcblxuYGBgIn0= -->
+<pre class="r"><code># Number of aggregate control cells
+singlet_data@meta.data %&gt;% 
+  filter(MUTATION.GROUP == &quot;Control&quot;) %&gt;%
+  nrow()
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDM2MzczXG4ifQ== -->
+<pre><code>[1] 36373</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBDb21wYXJlIGNlbGwgY291bnRzIHRvIGV4cGVjdGVkIHByb3BvcnRpb25zXG5zZXR3ZChcIi9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9maWd1cmVfMy9cIilcbmBgYCJ9 -->
+<pre class="r"><code># Compare cell counts to expected proportions
+setwd(&quot;/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/figure_3/&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZzogVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdhcyBjaGFuZ2VkIHRvIC9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3RhYmxlcy9maWd1cmVfMyBpbnNpZGUgYSBub3RlYm9vayBjaHVuay4gVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdpbGwgYmUgcmVzZXQgd2hlbiB0aGUgY2h1bmsgaXMgZmluaXNoZWQgcnVubmluZy4gVXNlIHRoZSBrbml0ciByb290LmRpciBvcHRpb24gaW4gdGhlIHNldHVwIGNodW5rIHRvIGNoYW5nZSB0aGUgd29ya2luZyBkaXJlY3RvcnkgZm9yIG5vdGVib29rIGNodW5rcy5cbiJ9 -->
+<pre><code>Warning: The working directory was changed to /home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/tables/figure_3 inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeV9zdGF0cyA9IHNpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lXG4gIGZpbHRlcihNVVRBVElPTi5HUk9VUCA9PSBcIkNvbnRyb2xcIikgJT4lXG4gIGdyb3VwX2J5KGNlbGx0eXBlLmRlKSAlPiVcbiAgc3VtbWFyaXplKGNvdW50ID0gbigpKSAlPiVcbiAgbXV0YXRlKGV4cF9wcm9wb3J0aW9uID0gY291bnQgLyBzdW0oY291bnQpKSAlPiVcbiAgc2VsZWN0KGNlbGx0eXBlLmRlLCBleHBfcHJvcG9ydGlvbilcbiAgXG4jIE51bWJlciBvZiBtdXRhdGVkIGFuZCB3aWxkdHlwZSBjZWxscyBieSBjZWxsIHR5cGVcbnRldDJfY291bnRzID0gdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lXG4gIGZpbHRlcihDbG9uZSA9PSBcIk11dGFudFwiKSAlPiVcbiAgc2VsZWN0KGNlbGx0eXBlLmRlKSAlPiVcbiAgdGFibGUoKSAlPiVcbiAgYXMuZGF0YS5mcmFtZSgpXG5cbmNvbG5hbWVzKHRldDJfY291bnRzKSA9IGMoXCJjZWxsdHlwZS5kZVwiLCBcImNvdW50XCIpXG5cbnRldDJfY29tcGFyaXNvbl90YWJsZSA9IGZ1bGxfam9pbih0ZXQyX2NvdW50cywgc3VtbWFyeV9zdGF0cylcbmBgYCJ9 -->
+<pre class="r"><code>summary_stats = singlet_data@meta.data %&gt;%
+  filter(MUTATION.GROUP == &quot;Control&quot;) %&gt;%
+  group_by(celltype.de) %&gt;%
+  summarize(count = n()) %&gt;%
+  mutate(exp_proportion = count / sum(count)) %&gt;%
+  select(celltype.de, exp_proportion)
+  
+# Number of mutated and wildtype cells by cell type
+tet2_counts = tet2_patient_singlet_data@meta.data %&gt;%
+  filter(Clone == &quot;Mutant&quot;) %&gt;%
+  select(celltype.de) %&gt;%
+  table() %&gt;%
+  as.data.frame()
+
+colnames(tet2_counts) = c(&quot;celltype.de&quot;, &quot;count&quot;)
+
+tet2_comparison_table = full_join(tet2_counts, summary_stats)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiSm9pbmluZywgYnkgPSBcImNlbGx0eXBlLmRlXCJcbiJ9 -->
+<pre><code>Joining, by = &quot;celltype.de&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGV0Ml9jb21wYXJpc29uX3RhYmxlW2lzLm5hKHRldDJfY29tcGFyaXNvbl90YWJsZSldID0gMFxuXG50ZXQyX2NoaXNxX3Jlc3VsdCA9IGNoaXNxLnRlc3QodGV0Ml9jb21wYXJpc29uX3RhYmxlJGNvdW50LCBwID0gdGV0Ml9jb21wYXJpc29uX3RhYmxlJGV4cF9wcm9wb3J0aW9uKVxuYGBgIn0= -->
+<pre class="r"><code>tet2_comparison_table[is.na(tet2_comparison_table)] = 0
+
+tet2_chisq_result = chisq.test(tet2_comparison_table$count, p = tet2_comparison_table$exp_proportion)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBpbiBjaGlzcS50ZXN0KHRldDJfY29tcGFyaXNvbl90YWJsZSRjb3VudCwgcCA9IHRldDJfY29tcGFyaXNvbl90YWJsZSRleHBfcHJvcG9ydGlvbikgOlxuICBDaGktc3F1YXJlZCBhcHByb3hpbWF0aW9uIG1heSBiZSBpbmNvcnJlY3RcbiJ9 -->
+<pre><code>Warning in chisq.test(tet2_comparison_table$count, p = tet2_comparison_table$exp_proportion) :
+  Chi-squared approximation may be incorrect</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHJpbnQoY2hpc3FfcmVzdWx0KVxuYGBgIn0= -->
+<pre class="r"><code>print(chisq_result)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdENoaS1zcXVhcmVkIHRlc3QgZm9yIGdpdmVuIHByb2JhYmlsaXRpZXNcblxuZGF0YTogIGNvbXBhcmlzb25fdGFibGUkY291bnRcblgtc3F1YXJlZCA9IDI2MjUsIGRmID0gMjEsIHAtdmFsdWUgPDJlLTE2XG4ifQ== -->
+<pre><code>
+    Chi-squared test for given probabilities
+
+data:  comparison_table$count
+X-squared = 2625, df = 21, p-value &lt;2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMgYnkgY2VsbCB0eXBlXG5kbm10M2FfY291bnRzID0gZG5tdDNhX3BhdGllbnRfc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiVcbiAgZmlsdGVyKENsb25lID09IFwiTXV0YW50XCIpICU+JVxuICBzZWxlY3QoY2VsbHR5cGUuZGUpICU+JVxuICB0YWJsZSgpICU+JVxuICBhcy5kYXRhLmZyYW1lKClcblxuY29sbmFtZXMoZG5tdDNhX2NvdW50cykgPSBjKFwiY2VsbHR5cGUuZGVcIiwgXCJjb3VudFwiKVxuXG5kbm10M2FfY29tcGFyaXNvbl90YWJsZSA9IGZ1bGxfam9pbihkbm10M2FfY291bnRzLCBzdW1tYXJ5X3N0YXRzKVxuYGBgIn0= -->
+<pre class="r"><code># Number of mutated and wildtype cells by cell type
+dnmt3a_counts = dnmt3a_patient_singlet_data@meta.data %&gt;%
+  filter(Clone == &quot;Mutant&quot;) %&gt;%
+  select(celltype.de) %&gt;%
+  table() %&gt;%
+  as.data.frame()
+
+colnames(dnmt3a_counts) = c(&quot;celltype.de&quot;, &quot;count&quot;)
+
+dnmt3a_comparison_table = full_join(dnmt3a_counts, summary_stats)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiSm9pbmluZywgYnkgPSBcImNlbGx0eXBlLmRlXCJcbiJ9 -->
+<pre><code>Joining, by = &quot;celltype.de&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5tdDNhX2NvbXBhcmlzb25fdGFibGVbaXMubmEoZG5tdDNhX2NvbXBhcmlzb25fdGFibGUpXSA9IDBcblxuZG5tdDNhX2NoaXNxX3Jlc3VsdCA9IGNoaXNxLnRlc3QoZG5tdDNhX2NvbXBhcmlzb25fdGFibGUkY291bnQsIHAgPSBkbm10M2FfY29tcGFyaXNvbl90YWJsZSRleHBfcHJvcG9ydGlvbilcbmBgYCJ9 -->
+<pre class="r"><code>dnmt3a_comparison_table[is.na(dnmt3a_comparison_table)] = 0
+
+dnmt3a_chisq_result = chisq.test(dnmt3a_comparison_table$count, p = dnmt3a_comparison_table$exp_proportion)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBpbiBjaGlzcS50ZXN0KGRubXQzYV9jb21wYXJpc29uX3RhYmxlJGNvdW50LCBwID0gZG5tdDNhX2NvbXBhcmlzb25fdGFibGUkZXhwX3Byb3BvcnRpb24pIDpcbiAgQ2hpLXNxdWFyZWQgYXBwcm94aW1hdGlvbiBtYXkgYmUgaW5jb3JyZWN0XG4ifQ== -->
+<pre><code>Warning in chisq.test(dnmt3a_comparison_table$count, p = dnmt3a_comparison_table$exp_proportion) :
+  Chi-squared approximation may be incorrect</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHJpbnQoZG5tdDNhX2NoaXNxX3Jlc3VsdClcbmBgYCJ9 -->
+<pre class="r"><code>print(dnmt3a_chisq_result)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdENoaS1zcXVhcmVkIHRlc3QgZm9yIGdpdmVuIHByb2JhYmlsaXRpZXNcblxuZGF0YTogIGRubXQzYV9jb21wYXJpc29uX3RhYmxlJGNvdW50XG5YLXNxdWFyZWQgPSAxODM2LCBkZiA9IDIxLCBwLXZhbHVlIDwyZS0xNlxuIn0= -->
+<pre><code>
+    Chi-squared test for given probabilities
+
+data:  dnmt3a_comparison_table$count
+X-squared = 1836, df = 21, p-value &lt;2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBULXRlc3QgdG8gY29tcGFyZSBsYWIgdmFsdWVzIGZvciB3aGl0ZSBibG9vZCBjZWxsIGNvdW50cywgYWJzb2x1dGUgbW9ub2N5dGVzLCBhbmQgcGVyY2VudCBtb25vY3l0ZXMgYmV0d2VlbiBDSElQIHBhdGllbnRzIGFuZCBjb250cm9sc1xubWF0Y2hlZF9tdXRhdGlvbnMgPSBzaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JVxuICBzZWxlY3Qob3JpZy5pZGVudCwgTVVUQVRJT04uR1JPVVApICU+JVxuICB1bmlxdWUoKVxuXG5jbGluaWNhbF9kYXRhID0gcmVhZC54bHN4KFwiLi4vaW5wdXRfZGF0YS9jbGluaWNhbCBkYXRhIGZvciBicmV0dCB2My54bHN4XCIpICU+JVxuICBpbm5lcl9qb2luKG1hdGNoZWRfbXV0YXRpb25zLCBieSA9IGMoXCJwYXRpZW50X2lkXCIgPSBcIm9yaWcuaWRlbnRcIikpICU+JVxuICBzZWxlY3QoTVVUQVRJT04uR1JPVVAsIHdiYywgYWJzX21vbm9jeXRlcywgYG1vbm9jeXRlc18lYClcblxuIyBXaGl0ZSBibG9vZCBjZWxsc1xudGV0Ml92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJURVQyXCIpICU+JSBwdWxsKHdiYylcbmRubXQzYV92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJETk1UM0FcIikgJT4lIHB1bGwod2JjKVxuY29udHJvbF92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJDb250cm9sXCIpICU+JSBwdWxsKHdiYylcbnQudGVzdCh0ZXQyX3ZhbHVlcywgY29udHJvbF92YWx1ZXMpXG5gYGAifQ== -->
+<pre class="r"><code># T-test to compare lab values for white blood cell counts, absolute monocytes, and percent monocytes between CHIP patients and controls
+matched_mutations = singlet_data@meta.data %&gt;%
+  select(orig.ident, MUTATION.GROUP) %&gt;%
+  unique()
+
+clinical_data = read.xlsx(&quot;../input_data/clinical data for brett v3.xlsx&quot;) %&gt;%
+  inner_join(matched_mutations, by = c(&quot;patient_id&quot; = &quot;orig.ident&quot;)) %&gt;%
+  select(MUTATION.GROUP, wbc, abs_monocytes, `monocytes_%`)
+
+# White blood cells
+tet2_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;TET2&quot;) %&gt;% pull(wbc)
+dnmt3a_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;DNMT3A&quot;) %&gt;% pull(wbc)
+control_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;Control&quot;) %&gt;% pull(wbc)
+t.test(tet2_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICB0ZXQyX3ZhbHVlcyBhbmQgY29udHJvbF92YWx1ZXNcbnQgPSAtMS4zLCBkZiA9IDcuNSwgcC12YWx1ZSA9IDAuMlxuYWx0ZXJuYXRpdmUgaHlwb3RoZXNpczogdHJ1ZSBkaWZmZXJlbmNlIGluIG1lYW5zIGlzIG5vdCBlcXVhbCB0byAwXG45NSBwZXJjZW50IGNvbmZpZGVuY2UgaW50ZXJ2YWw6XG4gLTUuMTE1ICAxLjU0MFxuc2FtcGxlIGVzdGltYXRlczpcbm1lYW4gb2YgeCBtZWFuIG9mIHkgXG4gICAgNS43MzcgICAgIDcuNTI1IFxuIn0= -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  tet2_values and control_values
+t = -1.3, df = 7.5, p-value = 0.2
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -5.115  1.540
+sample estimates:
+mean of x mean of y 
+    5.737     7.525 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudC50ZXN0KGRubXQzYV92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKVxuYGBgIn0= -->
+<pre class="r"><code>t.test(dnmt3a_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICBkbm10M2FfdmFsdWVzIGFuZCBjb250cm9sX3ZhbHVlc1xudCA9IC0xLjQsIGRmID0gNS44LCBwLXZhbHVlID0gMC4yXG5hbHRlcm5hdGl2ZSBoeXBvdGhlc2lzOiB0cnVlIGRpZmZlcmVuY2UgaW4gbWVhbnMgaXMgbm90IGVxdWFsIHRvIDBcbjk1IHBlcmNlbnQgY29uZmlkZW5jZSBpbnRlcnZhbDpcbiAtNC45NTMgIDEuNDI4XG5zYW1wbGUgZXN0aW1hdGVzOlxubWVhbiBvZiB4IG1lYW4gb2YgeSBcbiAgICA1Ljc2MyAgICAgNy41MjUgXG4ifQ== -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  dnmt3a_values and control_values
+t = -1.4, df = 5.8, p-value = 0.2
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -4.953  1.428
+sample estimates:
+mean of x mean of y 
+    5.763     7.525 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBBYnNvbHV0ZSBtb25vY3l0ZXNcbnRldDJfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09IFwiVEVUMlwiKSAlPiUgcHVsbChgbW9ub2N5dGVzXyVgKVxuZG5tdDNhX3ZhbHVlcyA9IGNsaW5pY2FsX2RhdGEgJT4lIGZpbHRlcihNVVRBVElPTi5HUk9VUCA9PSBcIkROTVQzQVwiKSAlPiUgcHVsbChgbW9ub2N5dGVzXyVgKVxuY29udHJvbF92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJDb250cm9sXCIpICU+JSBwdWxsKGBtb25vY3l0ZXNfJWApXG50LnRlc3QodGV0Ml92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKVxuYGBgIn0= -->
+<pre class="r"><code># Absolute monocytes
+tet2_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;TET2&quot;) %&gt;% pull(`monocytes_%`)
+dnmt3a_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;DNMT3A&quot;) %&gt;% pull(`monocytes_%`)
+control_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;Control&quot;) %&gt;% pull(`monocytes_%`)
+t.test(tet2_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICB0ZXQyX3ZhbHVlcyBhbmQgY29udHJvbF92YWx1ZXNcbnQgPSAxLjUsIGRmID0gNy4yLCBwLXZhbHVlID0gMC4yXG5hbHRlcm5hdGl2ZSBoeXBvdGhlc2lzOiB0cnVlIGRpZmZlcmVuY2UgaW4gbWVhbnMgaXMgbm90IGVxdWFsIHRvIDBcbjk1IHBlcmNlbnQgY29uZmlkZW5jZSBpbnRlcnZhbDpcbiAtMi4zMjAgIDkuOTc4XG5zYW1wbGUgZXN0aW1hdGVzOlxubWVhbiBvZiB4IG1lYW4gb2YgeSBcbiAgIDEyLjg2MyAgICAgOS4wMzMgXG4ifQ== -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  tet2_values and control_values
+t = 1.5, df = 7.2, p-value = 0.2
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -2.320  9.978
+sample estimates:
+mean of x mean of y 
+   12.863     9.033 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudC50ZXN0KGRubXQzYV92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKVxuYGBgIn0= -->
+<pre class="r"><code>t.test(dnmt3a_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICBkbm10M2FfdmFsdWVzIGFuZCBjb250cm9sX3ZhbHVlc1xudCA9IC0wLjU2LCBkZiA9IDUuMSwgcC12YWx1ZSA9IDAuNlxuYWx0ZXJuYXRpdmUgaHlwb3RoZXNpczogdHJ1ZSBkaWZmZXJlbmNlIGluIG1lYW5zIGlzIG5vdCBlcXVhbCB0byAwXG45NSBwZXJjZW50IGNvbmZpZGVuY2UgaW50ZXJ2YWw6XG4gLTIuODQ2ICAxLjgxOVxuc2FtcGxlIGVzdGltYXRlczpcbm1lYW4gb2YgeCBtZWFuIG9mIHkgXG4gICAgOC41MjAgICAgIDkuMDMzIFxuIn0= -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  dnmt3a_values and control_values
+t = -0.56, df = 5.1, p-value = 0.6
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -2.846  1.819
+sample estimates:
+mean of x mean of y 
+    8.520     9.033 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBQZXJjZW50IG1vbm9jeXRlc1xudGV0Ml92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gXCJURVQyXCIpICU+JSBwdWxsKGFic19tb25vY3l0ZXMpXG5kbm10M2FfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09IFwiRE5NVDNBXCIpICU+JSBwdWxsKGFic19tb25vY3l0ZXMpXG5jb250cm9sX3ZhbHVlcyA9IGNsaW5pY2FsX2RhdGEgJT4lIGZpbHRlcihNVVRBVElPTi5HUk9VUCA9PSBcIkNvbnRyb2xcIikgJT4lIHB1bGwoYWJzX21vbm9jeXRlcylcbnQudGVzdCh0ZXQyX3ZhbHVlcywgY29udHJvbF92YWx1ZXMpXG5gYGAifQ== -->
+<pre class="r"><code># Percent monocytes
+tet2_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;TET2&quot;) %&gt;% pull(abs_monocytes)
+dnmt3a_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;DNMT3A&quot;) %&gt;% pull(abs_monocytes)
+control_values = clinical_data %&gt;% filter(MUTATION.GROUP == &quot;Control&quot;) %&gt;% pull(abs_monocytes)
+t.test(tet2_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICB0ZXQyX3ZhbHVlcyBhbmQgY29udHJvbF92YWx1ZXNcbnQgPSAwLjEyLCBkZiA9IDguOSwgcC12YWx1ZSA9IDAuOVxuYWx0ZXJuYXRpdmUgaHlwb3RoZXNpczogdHJ1ZSBkaWZmZXJlbmNlIGluIG1lYW5zIGlzIG5vdCBlcXVhbCB0byAwXG45NSBwZXJjZW50IGNvbmZpZGVuY2UgaW50ZXJ2YWw6XG4gLTAuNDI1NyAgMC40NzE1XG5zYW1wbGUgZXN0aW1hdGVzOlxubWVhbiBvZiB4IG1lYW4gb2YgeSBcbiAgIDAuNzE2MiAgICAwLjY5MzMgXG4ifQ== -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  tet2_values and control_values
+t = 0.12, df = 8.9, p-value = 0.9
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.4257  0.4715
+sample estimates:
+mean of x mean of y 
+   0.7162    0.6933 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudC50ZXN0KGRubXQzYV92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKVxuYGBgIn0= -->
+<pre class="r"><code>t.test(dnmt3a_values, control_values)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICBkbm10M2FfdmFsdWVzIGFuZCBjb250cm9sX3ZhbHVlc1xudCA9IC0zLCBkZiA9IDIuNiwgcC12YWx1ZSA9IDAuMDdcbmFsdGVybmF0aXZlIGh5cG90aGVzaXM6IHRydWUgZGlmZmVyZW5jZSBpbiBtZWFucyBpcyBub3QgZXF1YWwgdG8gMFxuOTUgcGVyY2VudCBjb25maWRlbmNlIGludGVydmFsOlxuIC0wLjY5NzYxICAwLjA1NDk0XG5zYW1wbGUgZXN0aW1hdGVzOlxubWVhbiBvZiB4IG1lYW4gb2YgeSBcbiAgIDAuMzcyMCAgICAwLjY5MzMgXG4ifQ== -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  dnmt3a_values and control_values
+t = -3, df = 2.6, p-value = 0.07
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.69761  0.05494
+sample estimates:
+mean of x mean of y 
+   0.3720    0.6933 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSZWdyZXNzaW9uIHRlc3QgdG8gY29ycmVsYXRlIFZBRiB3aXRoIG15ZWxvaWQgc2tld1xuXG5cbiMgbmVlZCBWQUYgYW5kIG15ZWxvaWQgcHJvcG9ydGlvbiBmb3IgZWFjaCBwYXRpZW50XG5tdXRhdGlvbl9kYXRhID0gcmVhZF90c3YoXCIuLi90YWJsZXMvc3VwcGxlbWVudGFsL211dGF0aW9uX2RhdGEudHN2XCIpICU+JVxuICBzZWxlY3Qob3JpZy5pZGVudCwgVkFGKVxuYGBgIn0= -->
+<pre class="r"><code># Regression test to correlate VAF with myeloid skew
+
+
+# need VAF and myeloid proportion for each patient
+mutation_data = read_tsv(&quot;../tables/supplemental/mutation_data.tsv&quot;) %&gt;%
+  select(orig.ident, VAF)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUm93czogMjMgQ29sdW1uczogNlxu4pSA4pSAIENvbHVtbiBzcGVjaWZpY2F0aW9uIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgFxuRGVsaW1pdGVyOiBcIlxcdFwiXG5jaHIgKDMpOiBvcmlnLmlkZW50LCBNVVRBVElPTiwgTXV0YXRpb25fR3JvdXBcbmRibCAoMSk6IFZBRlxubGdsICgyKTogTXV0YXRpb25zLCBWQUZzXG5cbuKEuSBVc2UgYHNwZWMoKWAgdG8gcmV0cmlldmUgdGhlIGZ1bGwgY29sdW1uIHNwZWNpZmljYXRpb24gZm9yIHRoaXMgZGF0YS5cbuKEuSBTcGVjaWZ5IHRoZSBjb2x1bW4gdHlwZXMgb3Igc2V0IGBzaG93X2NvbF90eXBlcyA9IEZBTFNFYCB0byBxdWlldCB0aGlzIG1lc3NhZ2UuXG4ifQ== -->
+<pre><code>Rows: 23 Columns: 6
+── Column specification ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Delimiter: &quot;\t&quot;
+chr (3): orig.ident, MUTATION, Mutation_Group
+dbl (1): VAF
+lgl (2): Mutations, VAFs
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudmFmX2FuZF9teWVsb2lkID0gc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiVcbiAgaW5uZXJfam9pbihtdXRhdGlvbl9kYXRhKSAlPiVcbiAgZ3JvdXBfYnkob3JpZy5pZGVudCwgVkFGKSAlPiVcbiAgc3VtbWFyaXplKGNkMTRfbW9ub19wcm9wID0gc3VtKGNlbGx0eXBlLmRlID09IFwiQ0QxNCBNb25vXCIpIC8gbigpKVxuYGBgIn0= -->
+<pre class="r"><code>vaf_and_myeloid = singlet_data@meta.data %&gt;%
+  inner_join(mutation_data) %&gt;%
+  group_by(orig.ident, VAF) %&gt;%
+  summarize(cd14_mono_prop = sum(celltype.de == &quot;CD14 Mono&quot;) / n())</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiSm9pbmluZywgYnkgPSBcIm9yaWcuaWRlbnRcIlxuYHN1bW1hcmlzZSgpYCBoYXMgZ3JvdXBlZCBvdXRwdXQgYnkgJ29yaWcuaWRlbnQnLiBZb3UgY2FuIG92ZXJyaWRlIHVzaW5nIHRoZSBgLmdyb3Vwc2AgYXJndW1lbnQuXG4ifQ== -->
+<pre><code>Joining, by = &quot;orig.ident&quot;
+`summarise()` has grouped output by &#39;orig.ident&#39;. You can override using the `.groups` argument.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGluZWFyX21vZGVsID0gbG0odmFmX2FuZF9teWVsb2lkJFZBRiB+IHZhZl9hbmRfbXllbG9pZCRjZDE0X21vbm9fcHJvcClcbnN1bW1hcnkobGluZWFyX21vZGVsKVxuYGBgIn0= -->
+<pre class="r"><code>linear_model = lm(vaf_and_myeloid$VAF ~ vaf_and_myeloid$cd14_mono_prop)
+summary(linear_model)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IHZhZl9hbmRfbXllbG9pZCRWQUYgfiB2YWZfYW5kX215ZWxvaWQkY2QxNF9tb25vX3Byb3ApXG5cblJlc2lkdWFsczpcbiAgICBNaW4gICAgICAxUSAgTWVkaWFuICAgICAgM1EgICAgIE1heCBcbi0yNi4yNTggIC04LjE1MSAgLTAuODU0ICAgNy4yNDAgIDI0LjI4MiBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgdCB2YWx1ZSBQcig+fHR8KSAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICAgICAgICAgICAgIC0zLjY2ICAgICAgIDUuMjkgICAtMC42OSAgIDAuNDk2NyAgIFxudmFmX2FuZF9teWVsb2lkJGNkMTRfbW9ub19wcm9wICAgIDU4LjY2ICAgICAgMTYuNzAgICAgMy41MSAgIDAuMDAyMSAqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAxMiBvbiAyMSBkZWdyZWVzIG9mIGZyZWVkb21cbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMzcsXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjM0IFxuRi1zdGF0aXN0aWM6IDEyLjMgb24gMSBhbmQgMjEgREYsICBwLXZhbHVlOiAwLjAwMjA3XG4ifQ== -->
+<pre><code>
+Call:
+lm(formula = vaf_and_myeloid$VAF ~ vaf_and_myeloid$cd14_mono_prop)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-26.258  -8.151  -0.854   7.240  24.282 
+
+Coefficients:
+                               Estimate Std. Error t value Pr(&gt;|t|)   
+(Intercept)                       -3.66       5.29   -0.69   0.4967   
+vaf_and_myeloid$cd14_mono_prop    58.66      16.70    3.51   0.0021 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 12 on 21 degrees of freedom
+Multiple R-squared:  0.37,  Adjusted R-squared:  0.34 
+F-statistic: 12.3 on 1 and 21 DF,  p-value: 0.00207</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxud3JpdGVfdHN2KHZhZl9hbmRfbXllbG9pZCwgXCIuLi90YWJsZXMvc3VwcGxlbWVudGFsL3ZhZl9hbmRfbXllbG9pZC50c3ZcIilcblxuYGBgIn0= -->
+<pre class="r"><code>write_tsv(vaf_and_myeloid, &quot;../tables/supplemental/vaf_and_myeloid.tsv&quot;)
+</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the
@@ -1867,7 +2326,7 @@ run any R code chunks. Instead, the output of the chunk when it was last
 run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiQWRkaXRpb25hbCBjYWxjdWxhdGlvbnMgZm9yIG1hbnVzY3JpcHQiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCmBgYHtyfQpzb3VyY2UoIi9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3NjcmlwdHMvc291cmNlX3NpbmdsZXRfZGF0YS5SIikKYGBgCmBgYHtyfQojIE51bWJlciBvZiBjZWxscyBpbiBURVQyIHBhdGllbnQKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lIG5yb3coKQoKIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lKSAlPiUKICB0YWJsZSgpCgojIE51bWJlciBvZiBtdXRhdGVkIGFuZCB3aWxkdHlwZSBjZWxscyBieSBjZWxsIHR5cGUKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lLCBjZWxsdHlwZS5kZSkgJT4lCiAgdGFibGUoKQoKIyBQZXJjZW50YWdlIG11dGF0ZWQKNDQyNSAvIDg1ODUKCmBgYApgYGB7cn0KIyBOdW1iZXIgb2YgY2VsbHMgaW4gRE5NVDNBIHBhdGllbnQKZG5tdDNhX3BhdGllbnRfc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgbnJvdygpCgojIE51bWJlciBvZiBtdXRhdGVkIGFuZCB3aWxkdHlwZSBjZWxscwpkbm10M2FfcGF0aWVudF9zaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JQogIHNlbGVjdChDbG9uZSkgJT4lCiAgdGFibGUoKQoKIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMgYnkgY2VsbCB0eXBlCmRubXQzYV9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lLCBjZWxsdHlwZS5kZSkgJT4lCiAgdGFibGUoKQoKIyBQZXJjZW50YWdlIG11dGF0ZWQKODcyIC8gNDQ1NwpgYGAKCkFkZCBhIG5ldyBjaHVuayBieSBjbGlja2luZyB0aGUgKkluc2VydCBDaHVuayogYnV0dG9uIG9uIHRoZSB0b29sYmFyIG9yIGJ5IHByZXNzaW5nICpDdHJsK0FsdCtJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ3RybCtTaGlmdCtLKiB0byBwcmV2aWV3IHRoZSBIVE1MIGZpbGUpLgoKVGhlIHByZXZpZXcgc2hvd3MgeW91IGEgcmVuZGVyZWQgSFRNTCBjb3B5IG9mIHRoZSBjb250ZW50cyBvZiB0aGUgZWRpdG9yLiBDb25zZXF1ZW50bHksIHVubGlrZSAqS25pdCosICpQcmV2aWV3KiBkb2VzIG5vdCBydW4gYW55IFIgY29kZSBjaHVua3MuIEluc3RlYWQsIHRoZSBvdXRwdXQgb2YgdGhlIGNodW5rIHdoZW4gaXQgd2FzIGxhc3QgcnVuIGluIHRoZSBlZGl0b3IgaXMgZGlzcGxheWVkLgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiQWRkaXRpb25hbCBjYWxjdWxhdGlvbnMgZm9yIG1hbnVzY3JpcHQiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCmBgYHtyfQpzb3VyY2UoIi9ob21lL3JzdHVkaW8vYmlja2xhYi1hcHMvZWRpdC9TaW5nbGVfQ2VsbF9DSElQL3NjcmlwdHMvc291cmNlX3NpbmdsZXRfZGF0YS5SIikKYGBgCmBgYHtyfQojIE51bWJlciBvZiBjZWxscyBpbiBURVQyIHBhdGllbnQKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lIG5yb3coKQoKIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lKSAlPiUKICB0YWJsZSgpCgojIE51bWJlciBvZiBtdXRhdGVkIGFuZCB3aWxkdHlwZSBjZWxscyBieSBjZWxsIHR5cGUKdGV0Ml9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lLCBjZWxsdHlwZS5kZSkgJT4lCiAgdGFibGUoKQoKIyBQZXJjZW50YWdlIG11dGF0ZWQKNDQyNSAvIDg1ODUKCmBgYApgYGB7cn0KIyBOdW1iZXIgb2YgY2VsbHMgaW4gRE5NVDNBIHBhdGllbnQKZG5tdDNhX3BhdGllbnRfc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgbnJvdygpCgojIE51bWJlciBvZiBtdXRhdGVkIGFuZCB3aWxkdHlwZSBjZWxscwpkbm10M2FfcGF0aWVudF9zaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JQogIHNlbGVjdChDbG9uZSkgJT4lCiAgdGFibGUoKQoKIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMgYnkgY2VsbCB0eXBlCmRubXQzYV9wYXRpZW50X3NpbmdsZXRfZGF0YUBtZXRhLmRhdGEgJT4lCiAgc2VsZWN0KENsb25lLCBjZWxsdHlwZS5kZSkgJT4lCiAgdGFibGUoKQoKIyBQZXJjZW50YWdlIG11dGF0ZWQKODcyIC8gNDQ1NwpgYGAKCgpgYGB7cn0KIyBOdW1iZXIgb2YgZGlmZmVyZW50aWFsbHkgZXhwcmVzc2VkIGdlbmVzCnNldHdkKCIvaG9tZS9yc3R1ZGlvL2JpY2tsYWItYXBzL2VkaXQvU2luZ2xlX0NlbGxfQ0hJUC90YWJsZXMvc3VwcGxlbWVudGFsLyIpCgojIFRFVDIgQ0QxNCBtb25vY3l0ZXMKdGV0Ml9kYXRhID0gcmVhZF9jc3YoIlRFVDJfQ0QxNF9Nb25vX3Vuc3RpbV93aWxjb3guY3N2IikKdGV0Ml9kYXRhICU+JQogIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lCiAgbnJvdygpCgojIEROTVQzQSBDRDE0IG1vbm9jeXRlcwpkbm10M2FfZGF0YSA9IHJlYWRfY3N2KCJETk1UM0FfQ0QxNF9Nb25vX3Vuc3RpbV93aWxjb3guY3N2IikKZG5tdDNhX2RhdGEgJT4lCiAgZmlsdGVyKGFicyhhdmdfbG9nMkZDKSA+IDAuMjUgJiBwX3ZhbF9hZGogPCAwLjA1KSAlPiUKICBucm93KCkKCiMgVEVUMiBDRDggVCBjZWxscwp0ZXQyX2RhdGEgPSByZWFkX2NzdigiVEVUMl9DRDhfVF9jZWxsX3Vuc3RpbV93aWxjb3guY3N2IikKdGV0Ml9kYXRhICU+JQogIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lCiAgbnJvdygpCgojIEROTVQzQSBDRDggVCBjZWxscwpkbm10M2FfZGF0YSA9IHJlYWRfY3N2KCJETk1UM0FfQ0Q4X1RfY2VsbF91bnN0aW1fd2lsY294LmNzdiIpCmRubXQzYV9kYXRhICU+JQogIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lCiAgbnJvdygpCmBgYApgYGB7cn0KIyBOdW1iZXIgb2YgY2VsbHMgaW4gZGlmZmVyZW50aWFsIGV4cHJlc3Npb24gY29tcGFyaXNvbgpzaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JSAKICBmaWx0ZXIoY2VsbHR5cGUuZGUgPT0gIkNEMTQgTW9ubyIgJiBNVVRBVElPTi5HUk9VUCA9PSAiVEVUMiIpICU+JQogIG5yb3coKQoKc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgCiAgZmlsdGVyKGNlbGx0eXBlLmRlID09ICJDRDE0IE1vbm8iICYgTVVUQVRJT04uR1JPVVAgPT0gIkROTVQzQSIpICU+JQogIG5yb3coKQoKc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgCiAgZmlsdGVyKGNlbGx0eXBlLmRlID09ICJDRDE0IE1vbm8iICYgTVVUQVRJT04uR1JPVVAgPT0gIkNvbnRyb2wiKSAlPiUKICBucm93KCkKCmBgYAoKYGBge3J9CiMgTnVtYmVyIG9mIGRpZmZlcmVudGlhbGx5IGV4cHJlc3NlZCBnZW5lcyAtIGluZGl2aWR1YWwgcGF0aWVudApzZXR3ZCgiL2hvbWUvcnN0dWRpby9iaWNrbGFiLWFwcy9lZGl0L1NpbmdsZV9DZWxsX0NISVAvdGFibGVzL3N1cHBsZW1lbnRhbC8iKQoKIyBURVQyIENEMTQgbW9ub2N5dGVzCnRldDJfZGF0YSA9IHJlYWRfY3N2KCJwYXRpZW50X1RFVDJfQ0QxNF9Nb25vX3dpbGNveF91bnN0aW0uY3N2IikKdGV0Ml9kYXRhICU+JQogIGZpbHRlcihhYnMoYXZnX2xvZzJGQykgPiAwLjI1ICYgcF92YWxfYWRqIDwgMC4wNSkgJT4lCiAgbnJvdygpCgojIEROTVQzQSBDRDE0IG1vbm9jeXRlcwpkbm10M2FfZGF0YSA9IHJlYWRfY3N2KCJwYXRpZW50X0ROTVQzQV9DRDE0X01vbm9fd2lsY294X3Vuc3RpbS5jc3YiKQpkbm10M2FfZGF0YSAlPiUKICBmaWx0ZXIoYWJzKGF2Z19sb2cyRkMpID4gMC4yNSAmIHBfdmFsX2FkaiA8IDAuMDUpICU+JQogIG5yb3coKQoKYGBgCgpgYGB7cn0KIyBOdW1iZXIgb2YgYWdncmVnYXRlIGNvbnRyb2wgY2VsbHMKc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUgCiAgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJDb250cm9sIikgJT4lCiAgbnJvdygpCmBgYAoKYGBge3J9CiMgQ2hpLXNxdWFyZWQgdGVzdCB0byBjb21wYXJlIG11dGFudCBjZWxsIGNvdW50cyB0byBleHBlY3RlZCBwcm9wb3J0aW9ucyAoYmFzZWQgb24gYWdncmVnYXRlZCBjb250cm9sIHByb3BvcnRpb25zKQpzZXR3ZCgiL2hvbWUvcnN0dWRpby9iaWNrbGFiLWFwcy9lZGl0L1NpbmdsZV9DZWxsX0NISVAvdGFibGVzL2ZpZ3VyZV8zLyIpCgpzdW1tYXJ5X3N0YXRzID0gc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUKICBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gIkNvbnRyb2wiKSAlPiUKICBncm91cF9ieShjZWxsdHlwZS5kZSkgJT4lCiAgc3VtbWFyaXplKGNvdW50ID0gbigpKSAlPiUKICBtdXRhdGUoZXhwX3Byb3BvcnRpb24gPSBjb3VudCAvIHN1bShjb3VudCkpICU+JQogIHNlbGVjdChjZWxsdHlwZS5kZSwgZXhwX3Byb3BvcnRpb24pCiAgCiMgTnVtYmVyIG9mIG11dGF0ZWQgYW5kIHdpbGR0eXBlIGNlbGxzIGJ5IGNlbGwgdHlwZQp0ZXQyX2NvdW50cyA9IHRldDJfcGF0aWVudF9zaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JQogIGZpbHRlcihDbG9uZSA9PSAiTXV0YW50IikgJT4lCiAgc2VsZWN0KGNlbGx0eXBlLmRlKSAlPiUKICB0YWJsZSgpICU+JQogIGFzLmRhdGEuZnJhbWUoKQoKY29sbmFtZXModGV0Ml9jb3VudHMpID0gYygiY2VsbHR5cGUuZGUiLCAiY291bnQiKQoKdGV0Ml9jb21wYXJpc29uX3RhYmxlID0gZnVsbF9qb2luKHRldDJfY291bnRzLCBzdW1tYXJ5X3N0YXRzKQp0ZXQyX2NvbXBhcmlzb25fdGFibGVbaXMubmEodGV0Ml9jb21wYXJpc29uX3RhYmxlKV0gPSAwCgp0ZXQyX2NoaXNxX3Jlc3VsdCA9IGNoaXNxLnRlc3QodGV0Ml9jb21wYXJpc29uX3RhYmxlJGNvdW50LCBwID0gdGV0Ml9jb21wYXJpc29uX3RhYmxlJGV4cF9wcm9wb3J0aW9uKQpwcmludChjaGlzcV9yZXN1bHQpCgoKIyBOdW1iZXIgb2YgbXV0YXRlZCBhbmQgd2lsZHR5cGUgY2VsbHMgYnkgY2VsbCB0eXBlCmRubXQzYV9jb3VudHMgPSBkbm10M2FfcGF0aWVudF9zaW5nbGV0X2RhdGFAbWV0YS5kYXRhICU+JQogIGZpbHRlcihDbG9uZSA9PSAiTXV0YW50IikgJT4lCiAgc2VsZWN0KGNlbGx0eXBlLmRlKSAlPiUKICB0YWJsZSgpICU+JQogIGFzLmRhdGEuZnJhbWUoKQoKY29sbmFtZXMoZG5tdDNhX2NvdW50cykgPSBjKCJjZWxsdHlwZS5kZSIsICJjb3VudCIpCgpkbm10M2FfY29tcGFyaXNvbl90YWJsZSA9IGZ1bGxfam9pbihkbm10M2FfY291bnRzLCBzdW1tYXJ5X3N0YXRzKQpkbm10M2FfY29tcGFyaXNvbl90YWJsZVtpcy5uYShkbm10M2FfY29tcGFyaXNvbl90YWJsZSldID0gMAoKZG5tdDNhX2NoaXNxX3Jlc3VsdCA9IGNoaXNxLnRlc3QoZG5tdDNhX2NvbXBhcmlzb25fdGFibGUkY291bnQsIHAgPSBkbm10M2FfY29tcGFyaXNvbl90YWJsZSRleHBfcHJvcG9ydGlvbikKcHJpbnQoZG5tdDNhX2NoaXNxX3Jlc3VsdCkKYGBgCmBgYHtyfQojIFQtdGVzdCB0byBjb21wYXJlIGxhYiB2YWx1ZXMgZm9yIHdoaXRlIGJsb29kIGNlbGwgY291bnRzLCBhYnNvbHV0ZSBtb25vY3l0ZXMsIGFuZCBwZXJjZW50IG1vbm9jeXRlcyBiZXR3ZWVuIENISVAgcGF0aWVudHMgYW5kIGNvbnRyb2xzCm1hdGNoZWRfbXV0YXRpb25zID0gc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUKICBzZWxlY3Qob3JpZy5pZGVudCwgTVVUQVRJT04uR1JPVVApICU+JQogIHVuaXF1ZSgpCgpjbGluaWNhbF9kYXRhID0gcmVhZC54bHN4KCIuLi9pbnB1dF9kYXRhL2NsaW5pY2FsIGRhdGEgZm9yIGJyZXR0IHYzLnhsc3giKSAlPiUKICBpbm5lcl9qb2luKG1hdGNoZWRfbXV0YXRpb25zLCBieSA9IGMoInBhdGllbnRfaWQiID0gIm9yaWcuaWRlbnQiKSkgJT4lCiAgc2VsZWN0KE1VVEFUSU9OLkdST1VQLCB3YmMsIGFic19tb25vY3l0ZXMsIGBtb25vY3l0ZXNfJWApCgojIFdoaXRlIGJsb29kIGNlbGxzCnRldDJfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJURVQyIikgJT4lIHB1bGwod2JjKQpkbm10M2FfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJETk1UM0EiKSAlPiUgcHVsbCh3YmMpCmNvbnRyb2xfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJDb250cm9sIikgJT4lIHB1bGwod2JjKQp0LnRlc3QodGV0Ml92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKQp0LnRlc3QoZG5tdDNhX3ZhbHVlcywgY29udHJvbF92YWx1ZXMpCgojIEFic29sdXRlIG1vbm9jeXRlcwp0ZXQyX3ZhbHVlcyA9IGNsaW5pY2FsX2RhdGEgJT4lIGZpbHRlcihNVVRBVElPTi5HUk9VUCA9PSAiVEVUMiIpICU+JSBwdWxsKGBtb25vY3l0ZXNfJWApCmRubXQzYV92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gIkROTVQzQSIpICU+JSBwdWxsKGBtb25vY3l0ZXNfJWApCmNvbnRyb2xfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJDb250cm9sIikgJT4lIHB1bGwoYG1vbm9jeXRlc18lYCkKdC50ZXN0KHRldDJfdmFsdWVzLCBjb250cm9sX3ZhbHVlcykKdC50ZXN0KGRubXQzYV92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKQoKIyBQZXJjZW50IG1vbm9jeXRlcwp0ZXQyX3ZhbHVlcyA9IGNsaW5pY2FsX2RhdGEgJT4lIGZpbHRlcihNVVRBVElPTi5HUk9VUCA9PSAiVEVUMiIpICU+JSBwdWxsKGFic19tb25vY3l0ZXMpCmRubXQzYV92YWx1ZXMgPSBjbGluaWNhbF9kYXRhICU+JSBmaWx0ZXIoTVVUQVRJT04uR1JPVVAgPT0gIkROTVQzQSIpICU+JSBwdWxsKGFic19tb25vY3l0ZXMpCmNvbnRyb2xfdmFsdWVzID0gY2xpbmljYWxfZGF0YSAlPiUgZmlsdGVyKE1VVEFUSU9OLkdST1VQID09ICJDb250cm9sIikgJT4lIHB1bGwoYWJzX21vbm9jeXRlcykKdC50ZXN0KHRldDJfdmFsdWVzLCBjb250cm9sX3ZhbHVlcykKdC50ZXN0KGRubXQzYV92YWx1ZXMsIGNvbnRyb2xfdmFsdWVzKQpgYGAKYGBge3J9CiMgUmVncmVzc2lvbiB0ZXN0IHRvIGNvcnJlbGF0ZSBWQUYgd2l0aCBteWVsb2lkIHNrZXcKCgojIG5lZWQgVkFGIGFuZCBteWVsb2lkIHByb3BvcnRpb24gZm9yIGVhY2ggcGF0aWVudAptdXRhdGlvbl9kYXRhID0gcmVhZF90c3YoIi4uL3RhYmxlcy9zdXBwbGVtZW50YWwvbXV0YXRpb25fZGF0YS50c3YiKSAlPiUKICBzZWxlY3Qob3JpZy5pZGVudCwgVkFGKQoKdmFmX2FuZF9teWVsb2lkID0gc2luZ2xldF9kYXRhQG1ldGEuZGF0YSAlPiUKICBpbm5lcl9qb2luKG11dGF0aW9uX2RhdGEpICU+JQogIGdyb3VwX2J5KG9yaWcuaWRlbnQsIFZBRikgJT4lCiAgc3VtbWFyaXplKGNkMTRfbW9ub19wcm9wID0gc3VtKGNlbGx0eXBlLmRlID09ICJDRDE0IE1vbm8iKSAvIG4oKSkKCmxpbmVhcl9tb2RlbCA9IGxtKHZhZl9hbmRfbXllbG9pZCRWQUYgfiB2YWZfYW5kX215ZWxvaWQkY2QxNF9tb25vX3Byb3ApCnN1bW1hcnkobGluZWFyX21vZGVsKQoKd3JpdGVfdHN2KHZhZl9hbmRfbXllbG9pZCwgIi4uL3RhYmxlcy9zdXBwbGVtZW50YWwvdmFmX2FuZF9teWVsb2lkLnRzdiIpCgpgYGAKCgpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ3RybCtBbHQrSSouCgpXaGVuIHlvdSBzYXZlIHRoZSBub3RlYm9vaywgYW4gSFRNTCBmaWxlIGNvbnRhaW5pbmcgdGhlIGNvZGUgYW5kIG91dHB1dCB3aWxsIGJlIHNhdmVkIGFsb25nc2lkZSBpdCAoY2xpY2sgdGhlICpQcmV2aWV3KiBidXR0b24gb3IgcHJlc3MgKkN0cmwrU2hpZnQrSyogdG8gcHJldmlldyB0aGUgSFRNTCBmaWxlKS4KClRoZSBwcmV2aWV3IHNob3dzIHlvdSBhIHJlbmRlcmVkIEhUTUwgY29weSBvZiB0aGUgY29udGVudHMgb2YgdGhlIGVkaXRvci4gQ29uc2VxdWVudGx5LCB1bmxpa2UgKktuaXQqLCAqUHJldmlldyogZG9lcyBub3QgcnVuIGFueSBSIGNvZGUgY2h1bmtzLiBJbnN0ZWFkLCB0aGUgb3V0cHV0IG9mIHRoZSBjaHVuayB3aGVuIGl0IHdhcyBsYXN0IHJ1biBpbiB0aGUgZWRpdG9yIGlzIGRpc3BsYXllZC4K</div>
 
 
 

@@ -31,6 +31,8 @@ mutation_data = patient_level_data %>%
   mutate(VAFs = get_vafs(MUTATION)) %>%
   mutate(Mutation_Group = paste(Mutations %>% unique() %>% sort(), collapse = " "))
 
+write_tsv(mutation_data, "tables/supplemental/mutation_data.tsv")
+
 
 mutation_list = mutation_data$Mutations %>% lapply(paste, sep = "&")
 
@@ -42,7 +44,6 @@ srsf2_data = c()
 dnmt3a_data = c()
 idh2_data = c()
 tp53_data = c()
-asxl1_data = c()
 none_data = c()
 
 tet2_vaf = c()
@@ -50,7 +51,6 @@ srsf2_vaf = c()
 dnmt3a_vaf = c()
 idh2_vaf = c()
 tp53_vaf = c()
-asxl1_vaf = c()
 none_vaf = c()
 
 full_data = c("Entry", "VAF", "Mutation_Group")
@@ -88,10 +88,6 @@ for (i in 1:length(mutation_data$Mutations)) {
       tp53_data = c(tp53_data, i)
       tp53_vaf = c(tp53_vaf, vaf)
     }
-    if ("?ASXL1G645fs" == sub_entry) {
-      asxl1_data = c(asxl1_data, i)
-      asxl1_vaf = c(asxl1_vaf, vaf)
-    } 
     if ("none" == sub_entry) {
       none_data = c(none_data, i)
       none_vaf = c(none_vaf, "0")
@@ -100,19 +96,19 @@ for (i in 1:length(mutation_data$Mutations)) {
 }
 
 list_mutation_data = list(
-  "TET2" = tet2_data, "SRSF2" = srsf2_data, "DNMT3A" = dnmt3a_data, "IDH2" = idh2_data, "TP53" = tp53_data, "ASXL1" = asxl1_data, "None" = none_data
+  "TET2" = tet2_data, "SRSF2" = srsf2_data, "DNMT3A" = dnmt3a_data, "IDH2" = idh2_data, "TP53" = tp53_data, "None" = none_data
 )
 list_vaf_data = list(
-  "TET2" = tet2_vaf, "SRSF2" = srsf2_vaf, "DNMT3A" = dnmt3a_vaf, "IDH2" = idh2_vaf, "TP53" = tp53_vaf, "ASXL1" = asxl1_vaf, "None" = none_vaf
+  "TET2" = tet2_vaf, "SRSF2" = srsf2_vaf, "DNMT3A" = dnmt3a_vaf, "IDH2" = idh2_vaf, "TP53" = tp53_vaf, "None" = none_vaf
 )
 
 
 (upset_plot = upset(fromList(list_mutation_data), nsets = 7, keep.order = T, mb.ratio = c(0.3, 0.7),
-      sets = c("None", "ASXL1", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"), text.scale = 1.5,
-      main.bar.color = wes_palette("Royal1", 8, "continuous")[c(1,4,3,7,8,2)], mainbar.y.label = element_blank(), mainbar.y.max = 11, sets.x.label = element_blank()))
+      sets = c("None", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"), text.scale = 1.5,
+      main.bar.color = wes_palette("Royal1", 8, "continuous")[c(1,4,3,7,2)], mainbar.y.label = element_blank(), mainbar.y.max = 11, sets.x.label = element_blank()))
 
 filename = paste0(output_dir, "upset_mutations")
-png(file = paste0(filename, ".png"), res = 600, width = 4, height = 4, units = 'in')
+pdf(file = paste0(filename, ".pdf"), width = 4, height = 4)
 upset_plot
 dev.off()
 
@@ -125,19 +121,20 @@ colnames(full_data) = full_data[1,]
 full_data = full_data[-1,]
 full_data[is.na(full_data)] = 0
 full_data[full_data == "?ASXL1G645fs"] = "ASXL1"
-full_data[full_data == "?ASXL1G645fs TET2"] = "ASXL1 TET2"
+full_data[full_data == "?ASXL1G645fs TET2"] = "TET2"
 
 full_data = as.data.frame(full_data) %>%
   mutate(VAF = as.numeric(VAF)) %>%
-  mutate(Entry = factor(Entry, levels = c("none", "ASXL1", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"))) %>%
-  mutate(Mutation_Group = factor(Mutation_Group, levels = c("DNMT3A", "none", "TET2", "SRSF2 TET2", "ASXL1 TET2", "DNMT3A IDH2 TP53")))
+  mutate(Entry = factor(Entry, levels = c("none", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"))) %>%
+  mutate(Mutation_Group = factor(Mutation_Group, levels = c("DNMT3A", "none", "TET2", "SRSF2 TET2", "DNMT3A IDH2 TP53"))) %>%
+  na.omit()
 
 
 (dot_vafs = ggplot(full_data %>% as.data.frame(), aes(x = Entry, y = VAF)) +
     geom_rect(aes(fill = Entry, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, alpha = 0.05), show.legend = FALSE) +
-    geom_point(size = 6, aes(color = Mutation_Group)) +
+    geom_point(size = 3, aes(color = Mutation_Group)) +
   theme_bw() +
-  theme(text = element_text(size = 20), 
+  theme(text = element_text(size = 18), 
         axis.text.x = element_blank(), 
         axis.ticks = element_blank(),
         axis.text.y = element_text(angle = -90, vjust = 1), 
@@ -154,5 +151,5 @@ full_data = as.data.frame(full_data) %>%
     scale_fill_manual(values = c("#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0")) +
   facet_grid(~Entry, scales = "free"))
 filename = paste0(output_dir, "dot_vafs")
-save_plot(filename, dot_vafs, height = 4)
+save_plot(filename, dot_vafs, height = 2)
 write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
