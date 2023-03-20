@@ -1,7 +1,34 @@
 
 # Image formatting --------------------------------------------------------
 
-save_plot = function(file, plot, legend = TRUE, width = 4, height = 4, png = FALSE) {
+make_transparent = function(plots) {
+  for (i in c(1:length(plots))) {
+    plots[[i]] = plots[[i]] + theme(
+      rect = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill='transparent'), #transparent panel bg
+      plot.background = element_rect(fill='transparent', color = NA), #transparent plot bg
+      panel.grid.major = element_blank(), #remove major gridlines
+      panel.grid.minor = element_blank(), #remove minor gridlines
+      legend.background = element_rect(fill='transparent', color = NA), #transparent legend bg
+      legend.box.background = element_rect(fill='transparent', color = NA) #transparent legend panel
+    )
+  }
+  return(plots)
+}
+
+save_plot = function(file, plot, legend = TRUE, width = 4, height = 4, png = FALSE, transparent = FALSE) {
+  if (transparent) {
+    t_plot = plot + theme(
+      rect = element_rect(fill = "transparent"),
+      panel.background = element_rect(fill='transparent'), #transparent panel bg
+      plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+      panel.grid.major = element_blank(), #remove major gridlines
+      panel.grid.minor = element_blank(), #remove minor gridlines
+      legend.background = element_rect(fill='transparent'), #transparent legend bg
+      legend.box.background = element_rect(fill='transparent') #transparent legend panel
+    ) + ggpubr::theme_transparent()
+    ggsave(plot = t_plot, filename =  paste0(file, "_transparent.png"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in', bg = "transparent") 
+  }
   if (png) { 
     ggsave(plot = plot, filename =  paste0(file, ".png"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in') 
   }
@@ -105,6 +132,24 @@ format_volcano_2 = list(
         title = element_text(size = 11),
         legend.key.size = unit(0, "lines")),
   scale_color_manual(values = colors_2)
+)
+
+# Volcano 3 -----------------------------------------------------------------
+
+colors_3 = c(wes_palette("Royal1", 8, "continuous")[c(1,2,8)], "#d9d9d9") #c(wes_palette("Royal1", 20, "continuous")[c(1,7,18)], "#d9d9d9")
+names(colors_3) = c("T cell activation/TCR signaling", "Intracellular signaling", "Immune recruitment", "Other")
+format_volcano_3 = list(
+  xlab("log2(fold change)"),
+  ylab("-log10(p-value)"),
+  labs(color = "Pathway"),
+  theme_bw(),
+  theme_classic(),
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        text = element_text(size = 12.5),
+        title = element_text(size = 11),
+        legend.key.size = unit(0, "lines")),
+  scale_color_manual(values = colors_3)
 )
 
 # Dotplot -----------------------------------------------------------------

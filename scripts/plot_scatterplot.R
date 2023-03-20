@@ -12,20 +12,20 @@ curate_data = function(exp_data, cell_type = "CD14_Mono") {
   if (cell_type == "CD14_Mono") {
     exp_data %>% 
       dplyr::mutate(Pathway = factor(case_when(Gene %in% gene_label_data$Inflammation ~ "Inflammation",
-                                                  Gene %in% gene_label_data$Antigen.Presentation ~ "Antigen Presentation", 
-                                                  Gene %in% gene_label_data$Cell.Adhesion ~ "Cell Adhesion",
-                                                  Gene %in% gene_label_data$Monocyte.Activation ~ "Monocyte Activation",
+                                                  Gene %in% gene_label_data$Antigen.Presentation ~ "Antigen presentation", 
+                                                  Gene %in% gene_label_data$Cell.Adhesion ~ "Cell adhesion",
+                                                  Gene %in% gene_label_data$Monocyte.Activation ~ "Monocyte activation",
                                                   TRUE ~ "Other" ),
-                                        levels = c("Inflammation", "Antigen Presentation", "Cell Adhesion", "Monocyte Activation", "Other"))) %>% 
+                                        levels = c("Inflammation", "Antigen presentation", "Cell adhesion", "Monocyte activation", "Other"))) %>% 
       arrange(desc(Pathway)) %>%
       return()
   } else if (cell_type == "CD8_T_cell") {
     exp_data %>% 
-      dplyr::mutate(Pathway = factor(case_when(Gene %in% gene_label_data_t_cell$T.Cell.Activation ~ "T Cell Activation",
-                                                  Gene %in% gene_label_data_t_cell$Intracellular.Signaling ~ "Intracellular Signaling", 
+      dplyr::mutate(Pathway = factor(case_when(Gene %in% gene_label_data_t_cell$T.Cell.Activation ~ "T cell activation",
+                                                  Gene %in% gene_label_data_t_cell$Intracellular.Signaling ~ "Intracellular signaling", 
                                                   Gene %in% gene_label_data_t_cell$Immunomodulation ~ "Immunomodulation",
                                                   TRUE ~ "Other" ),
-                                        levels = c("T Cell Activation", "Intracellular Signaling", "Immunomodulation", "Other"))) %>% 
+                                        levels = c("T cell activation", "Intracellular signaling", "Immunomodulation", "Other"))) %>% 
       arrange(desc(Pathway)) %>%
       return()
   }
@@ -82,14 +82,11 @@ make_scatterplot = function(cell_type) {
   return(plots)
 }
 
-cell_types = c("CD14_Mono", "CD8_T_cell", "CD4_T_cell")
 cd14_scatter = make_scatterplot("CD14_Mono")
 cd8_scatter = make_scatterplot("CD8_T_cell")
-cd4_scatter = make_scatterplot("CD4_T_cell")
 
-
-combined_scatter = ggarrange(plotlist = c(cd14_scatter, cd8_scatter, cd4_scatter), nrow = 3, ncol = 2)
-save_plot(paste0(output_dir, "scatter_combined"), combined_scatter, height = 12, width = 10)
+combined_scatter = ggarrange(plotlist = c(cd14_scatter, cd8_scatter), nrow = 2, ncol = 2)
+save_plot(paste0(output_dir, "scatter_combined"), combined_scatter, height = 8, width = 10, png = TRUE)
 
 # Compile excel file ------------------------------------------------------
 
@@ -127,4 +124,4 @@ vaf_myeloid_plot = ggplot(vaf_and_myeloid, aes(x = VAF, y = cd14_mono_prop)) +
   theme(panel.grid.minor = element_blank(),
         panel.grid.major = element_blank())
 
-save_plot("figures/supplemental/vaf_and_myeloid", vaf_myeloid_plot, height = 4, width = 4)
+save_plot("figures/supplemental/vaf_and_myeloid", vaf_myeloid_plot, height = 4, width = 4, png = TRUE)

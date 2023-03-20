@@ -42,7 +42,7 @@ radar_stats = summary_stats %>%
   coord_cartesian(clip = "off"))
 
 filename = paste0(output_dir, "radar_myeloid_skew")
-save_plot(filename, radar_plot, height = 4, width = 5)
+save_plot(filename, radar_plot, height = 4, width = 5, transparent = TRUE)
 write_tsv(radar_stats, "tables/figure_1/radar_myeloid_skew.tsv")
 
 

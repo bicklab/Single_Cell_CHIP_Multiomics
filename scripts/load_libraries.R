@@ -15,6 +15,7 @@ library(clusterProfiler)
 library(DoubletFinder)
 library(ggnewscale)
 library(ggh4x)
+library(ggpubr)
 
 
 # Set directory -----------------------------------------------------------

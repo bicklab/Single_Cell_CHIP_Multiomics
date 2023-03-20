@@ -13,14 +13,14 @@ set.seed(123)
 heatmap_data = subset(singlet_data, idents = cell_types_of_interest, downsample = 500)
 
 pbmc.markers = FindAllMarkers(heatmap_data, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
-pbmc.markers %>%
+top_10 = pbmc.markers %>%
   group_by(cluster) %>%
-  top_n(n = 10, wt = avg_log2FC) -> top10
+  top_n(n = 10, wt = avg_log2FC)
 
 levels(heatmap_data) = c("NK", "CD8 T cell", "CD14 Mono", "CD4 T cell",  "B", "CD16 Mono", "Platelet", "DC")
 
-(heatmap = DoHeatmap(heatmap_data, features = top10$gene, raster = FALSE) + 
-  guides(color = "none"))
+(heatmap = DoHeatmap(heatmap_data, features = top_10$gene, raster = FALSE, size = 4, group.bar.height = 0) + 
+    guides(color = "none"))
 
 filename = "figures/supplemental/cell_identity_heatmap"
-save_plot(filename, heatmap, width = 7, height = 13)
+save_plot(filename, heatmap, width = 7, height = 13, png = TRUE)

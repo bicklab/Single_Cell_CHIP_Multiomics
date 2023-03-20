@@ -23,4 +23,4 @@ for (i in 1:length(plots)) {
 
 feature_plot = cowplot::plot_grid(plotlist = plots)
 filename = paste0(output_dir, "feature_canonical")
-save_plot(filename, feature_plot, height = 8, width = 8)
+save_plot(filename, feature_plot, height = 8, width = 8, png = TRUE)

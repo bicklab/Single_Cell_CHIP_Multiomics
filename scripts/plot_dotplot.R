@@ -112,8 +112,8 @@ make_dotplot = function(pathway_genes_tet2, pathway_genes_dnmt3a, stim_status, a
     select(Gene, Pathway, id, avg.exp) %>%
     pivot_wider(names_from = id, values_from = avg.exp)
   
-  shapes = c(1, 19)
-  names(shapes) = c("< 0", "> 0")
+  shapes = c(21, 1)
+  names(shapes) = c("yes", "no")
   
   alphas = c(1, 0.65)
   names(alphas) = c("> 0", "< 0")
@@ -122,10 +122,10 @@ make_dotplot = function(pathway_genes_tet2, pathway_genes_dnmt3a, stim_status, a
   names(borders) = c("< 10%", ">= 10%")
   
   sizes = c(3, 5)
-  names(sizes) = c("no", "yes")
+  names(alphas) = c("> 0", "< 0")
   
   (dotplot_compiled = ggplot(pathway_genes, aes(x = Gene, y = id)) +
-      geom_point(aes(size = Significant, fill = Pathway, alpha = `Avg log2 fold change`), color = "black", shape = 21) + # , stroke = 1.5 (border)
+      geom_point(aes(size = `Avg log2 fold change`, fill = Pathway, shape = Significant), color = "black") + # , stroke = 1.5 (border), shape = 21
       scale_alpha_manual(values = alphas) +
       scale_size_manual(values = sizes) +
       scale_fill_manual(values = dot_colors) +

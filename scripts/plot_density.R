@@ -52,8 +52,8 @@ tet2_patient_singlet_metadata = tet2_patient_singlet_data@meta.data
 tet2_patient_singlet_metadata$Clone[tet2_patient_singlet_metadata$Clone == "Mutant"] = "TET2"
 
 (tet2_patient_plot = ggplot(tet2_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
-    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.1) +
-    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 10, geom = "polygon") +
+    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
+    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 100, geom = "polygon") +
     format_add_arrows +
   labs(fill = "Density") +
   facet_wrap(~Clone))
@@ -65,8 +65,8 @@ write_tsv(tet2_patient_singlet_metadata, "tables/figure_3/density_tet2_patient.t
 dnmt3a_patient_singlet_metadata = dnmt3a_patient_singlet_data@meta.data
 dnmt3a_patient_singlet_metadata$Clone[dnmt3a_patient_singlet_metadata$Clone == "Mutant"] = "DNMT3A"
 (dnmt3a_patient_plot = ggplot(dnmt3a_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
-    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.1) +
-    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 3, geom = "polygon") +
+    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
+    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 6, geom = "polygon") +
     format_add_arrows +
   labs(fill = "Density") +
   facet_wrap(~Clone))

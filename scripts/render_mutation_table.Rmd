@@ -1,0 +1,76 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(openxlsx)
+library(table1)
+
+
+mutation_data = openxlsx::read.xlsx("../input_data/Maester_mut_reference.xlsx")
+matched_mutations = read_tsv("../tables/supplemental/matched_mutations.tsv")
+umap_data = read_tsv("../tables/supplemental/umap_patient_level.tsv")
+variant_data = openxlsx::read.xlsx("../input_data/CHIP - CHIVE Calls 4_26_22.xlsx", sheet = "CHIP_variant_list") %>%
+  na.omit() %>%
+  select(patient_id, AF, Ref, Alt, Func.refGene, ExonicFunc.refGene, Accession, NonsynOI) %>%
+  inner_join(umap_data %>% dplyr::select(orig.ident, vaf_identifier) %>% unique(), by = c("patient_id" = "orig.ident")) %>%
+  rowwise() %>%
+  mutate(Patient = strsplit(vaf_identifier, ":")[[1]][1]) %>%
+  select(-c(vaf_identifier, patient_id)) %>%
+  mutate(vaf = round(AF, digits = 2) * 100)
+
+
+mutation_table_wide = umap_data %>%
+  select(orig.ident, vaf_identifier) %>%
+  unique() %>%
+  mutate(ID = gsub("-", "_", orig.ident) %>% str_sub(4)) %>%
+  inner_join(mutation_data) %>%
+  rowwise() %>%
+  mutate(Patient = strsplit(vaf_identifier, ":")[[1]][1]) %>%
+  select(-c(orig.ident, vaf_identifier, ID)) 
+
+mutation_names = mutation_table_wide %>%
+  pivot_longer(cols = c(mut_1, mut_2, mut_3), names_to = "rank", names_prefix = "mut_", values_to = "mutation", values_drop_na = TRUE) %>%
+  select(Patient, rank, mutation)
+
+mutation_vafs = mutation_table_wide %>%
+  pivot_longer(cols = c(mut1_vaf, mut2_vaf, mut3_vaf), names_to = "rank", names_prefix = "mut", values_to = "vaf", values_drop_na = TRUE) %>%
+  rowwise() %>%
+  mutate(rank = str_sub(rank, 1, 1)) %>%
+  select(Patient, rank, vaf)
+
+mutation_bps = mutation_table_wide %>%
+  pivot_longer(cols = c(mut1_bp, mut2_bp, mut3_bp), names_to = "rank", names_prefix = "mut", values_to = "bp", values_drop_na = TRUE) %>%
+  rowwise() %>%
+  mutate(rank = str_sub(rank, 1, 1)) %>%
+  select(Patient, rank, bp)
+
+mutation_table_long = mutation_names %>%
+  inner_join(mutation_vafs) %>%
+  inner_join(mutation_bps) %>%
+  arrange(Patient) %>%
+  full_join(variant_data)
+
+write.xlsx(mutation_table_long, "../tables/supplemental/mutation_table_long.xlsx")
+
+```
+
+```{r grouped_clinical_data, echo = FALSE, results = 'asis'}
+
+
+table1(~ Sex + Race + Age + `Hx tobacco use` + `Hx CAD` + `Hx CHF` + `Systolic BP` + `Diastolic BP` + `Heart rate` | 
+         MUTATION.GROUP, data = grouped_clinical_data %>%
+         rename("Sex" = sex, "Race" = race, "Age" = age_initial_sample_collection, "Hx tobacco use" = former_smoker, 
+                "Hx CAD" = hx_cad, "Hx CHF" = hx_CHF, "Systolic BP" = systolic_bp, "Diastolic BP" = diastolic_bp, 
+                "Heart rate" = heart_rate), 
+         overall = NULL,
+         render.continuous = continuous_mean,
+         render = rndr)
+
+
+```
