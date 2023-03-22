@@ -1,0 +1,267 @@
+---
+title: "generate_plots"
+output: html_document
+date: '2023-03-22'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(Seurat)
+library(tidyverse)
+
+# CHANGE THIS TO PREPPED ANNOTATED SEURAT
+#annotated_seurat = readRDS("rds_objects/final_annotated_object.rds")
+
+output_dir = "figures/"
+```
+
+# Plot UMAP.
+```{r}
+control_count = 0
+dnmt3a_count = 0
+tet2_count = 0
+
+get_vaf = function(mutation, group) {
+  results = str_extract_all(mutation, paste0(group, "[^)]*\\)"))
+  percent_vector = lapply(results, str_extract_all, pattern = "(?<=\\().*%") %>% unlist()
+  if (length(percent_vector) > 0) {
+    max = substr(percent_vector, 1, nchar(percent_vector)-1) %>% as.numeric() %>% max()
+    return(max)
+  } else {
+    return(0)
+  }
+}
+
+get_vaf_identifier = function(vaf, group) {
+  if (vaf > 0) {
+    if (group == "DNMT3A") {
+      dnmt3a_count <<- dnmt3a_count + 1 # modifies a global variable
+      return(paste0(dnmt3a_count, ": ", vaf / 100))
+    } else {
+      tet2_count <<- tet2_count + 1 # modifies a global variable
+      return(paste0(tet2_count, ": ", vaf / 100))
+    }
+  } else {
+    control_count <<- control_count + 1 # modifies a global variable
+    return(control_count)
+  }
+}
+
+vaf_identifiers = annotated_seurat@meta.data %>%
+  dplyr::select(orig.ident, MUTATION, MUTATION.GROUP) %>%
+  unique() %>%
+  rowwise() %>%
+  mutate(VAF = get_vaf(MUTATION, MUTATION.GROUP)) %>%
+  arrange(VAF) %>%
+  mutate(vaf_identifier = paste(MUTATION.GROUP, get_vaf_identifier(VAF, MUTATION.GROUP)))
+
+umap_patient_level_data = annotated_seurat@meta.data %>% 
+  inner_join(vaf_identifiers)
+
+(umap_patient_level_plot = ggplot(umap_patient_level_data, aes(x = UMAP_1, y = UMAP_2)) +
+  geom_point(aes(color = `MUTATION.GROUP`), size = 0.4) +
+  facet_wrap(~vaf_identifier) +
+  format_no_axes_faceted)
+
+filename = paste0(output_dir, "umap_patient_level")
+save_plot(filename, umap_patient_level_plot, height = 8, width = 8.5, png = TRUE)
+write_tsv(umap_patient_level_data, "tables/umap_patient_level.tsv")
+
+
+
+```
+
+# Plot radar.
+```{r}
+
+# Radar plots -----------------------------------------------------------
+
+source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_data.R")
+source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/image_formatting.R")
+
+
+summarize_data = function(data, grouping_category) {
+  ignore_cells = c("Eryth", "HSPC", "Plasmablast", "MAIT")
+  summary_stats = data@meta.data %>%
+    filter(!(celltype.de %in% ignore_cells)) %>%
+    group_by(across(all_of(grouping_category)), celltype.de) %>%
+    summarize(count = n()) %>%
+    mutate(proportion = count / sum(count)) %>%
+    mutate(celltype.de = factor(celltype.de, levels = c("CD4 T cell", "CD14 Mono", "CD8 T cell", "NK", "B", "CD16 Mono", "DC", "Platelet"))) %>%
+    arrange(celltype.de) %>%
+    dplyr::select(-count) %>%
+    na.omit() %>%
+    pivot_wider(names_from = celltype.de, values_from = proportion)
+  return(summary_stats)
+}
+
+# All patients ------------------------------------------------------------
+
+output_dir = "figures/figure_1/"
+
+summary_stats = summarize_data(singlet_data, "MUTATION.GROUP")
+
+radar_stats = summary_stats %>%
+  mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("Control", "TET2", "DNMT3A")))
+
+(radar_plot = ggradar(radar_stats, 
+                values.radar = c(0, 0.2,0.5), 
+                grid.min = 0, grid.mid = 0.2, grid.max = 0.5,
+                group.line.width = 0.75,
+                group.point.size = 1.5,
+                group.colours = wes_palette("Royal1", 20, "continuous")[c(1,7,18)],
+                background.circle.colour = "white",
+                gridline.mid.colour = "grey",
+                legend.position = "bottom") +
+  theme(plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
+  coord_cartesian(clip = "off"))
+
+filename = paste0(output_dir, "radar_myeloid_skew")
+save_plot(filename, radar_plot, height = 4, width = 5, transparent = TRUE)
+write_tsv(radar_stats, "tables/figure_1/radar_myeloid_skew.tsv")
+
+
+# TET2 patient ------------------------------------------------------
+
+output_dir = "figures/figure_3/"
+
+summary_stats_tet2 = summarize_data(tet2_patient_singlet_data, "Clone")
+summary_stats_tet2[is.na(summary_stats_tet2)] = 0
+summary_stats_tet2[3,] = summary_stats[1,c(1:6, 8:9)]
+
+tet2_patient_radar_stats = summary_stats_tet2 %>%
+  mutate(Clone = factor(Clone, levels = c("Wildtype", "Mutant", "Control")))
+
+(tet2_patient_radar = ggradar(tet2_patient_radar_stats, 
+                values.radar = c(0, 0.5, 1), 
+                group.line.width = 0.75,
+                group.point.size = 1.5,
+                group.colours = wes_palette("Royal1", 20, "continuous")[c(1,7,18)],
+                background.circle.colour = "white",
+                gridline.mid.colour = "grey",
+                legend.position = "bottom") +
+    theme(
+      plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
+    coord_cartesian(clip = "off"))
+
+filename = paste0(output_dir, "radar_tet2_patient")
+save_plot(filename, tet2_patient_radar, height = 4, width = 5)
+write_tsv(tet2_patient_radar_stats, "tables/figure_3/radar_tet2_patient.tsv")
+
+
+# DNMT3A patient ------------------------------------------------------
+
+output_dir = "figures/figure_3/"
+
+summary_stats_dnmt3a = summarize_data(dnmt3a_patient_singlet_data, "Clone")
+summary_stats_dnmt3a[is.na(summary_stats_dnmt3a)] = 0
+summary_stats_dnmt3a[3,] = summary_stats[1,c(1:9)]
+
+dnmt3a_patient_radar_stats = summary_stats_dnmt3a %>%
+  mutate(Clone = factor(Clone, levels = c("Wildtype", "Mutant", "Control")))
+
+(dnmt3a_patient_radar = ggradar(dnmt3a_patient_radar_stats, 
+                              values.radar = c(0, 0.5, 1), 
+                              group.line.width = 0.75,
+                              group.point.size = 1.5,
+                              group.colours = wes_palette("Royal1", 20, "continuous")[c(1,7,18)],
+                              background.circle.colour = "white",
+                              gridline.mid.colour = "grey",
+                              legend.position = "bottom") +
+    theme(
+      plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
+    coord_cartesian(clip = "off"))
+
+filename = paste0(output_dir, "radar_dnmt3a_patient")
+save_plot(filename, dnmt3a_patient_radar, height = 4, width = 5)
+write_tsv(dnmt3a_patient_radar_stats, "tables/figure_3/radar_dnmt3a_patient.tsv")
+
+
+
+
+
+
+```
+
+
+# Plot density.
+```{r}
+
+# All patients plot ---------------------------------------------------------
+
+output_dir = "figures/figure_1/"
+
+
+Idents(singlet_data) = "celltype.de"
+relevant_cell_type_data = subset(singlet_data, idents = c("CD4 T cell", "CD14 Mono", "CD8 T cell", "NK", "B", "CD16 Mono", "DC", "Platelet"))
+
+set.seed(123)
+royal = wes_palette("Royal1", 10, "continuous")[c(1,2,3,4,5,6,9,10)] %>% sample(8)
+
+
+(all_data_plot = DimPlot(object = relevant_cell_type_data, reduction = "proj.umap", group.by = "celltype.de", label = FALSE, repel = T, raster = F, cols = royal, pt.size = 0.1) +
+  NoLegend() +
+  NoAxes() +
+  guides(color = guide_legend(override.aes = list(size=6), ncol=1)) +
+  theme(plot.title = element_blank()) +
+  annotate(x=-16, xend=-16, y=-16, yend=-8, colour="black", lwd=1, geom="segment", arrow = arrow(length = unit(0.1, "inches"))) +
+  annotate(x=-16, xend=-11, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = arrow(length = unit(0.1, "inches"))) +
+  annotate("text", label="UMAP 1", x=-17, -13, size = 4, angle = 90) +
+  annotate("text", label="UMAP 2", x=-14, y=-18, size = 4))
+
+filename = paste0(output_dir, "umap_all_data")
+save_plot(filename, all_data_plot, height = 5, width = 5, png = TRUE)
+
+
+# Density plot by genotype -----------------------------------------------
+
+
+(overlaid_plot = ggplot(singlet_data@meta.data, aes(x = UMAP_1, y = UMAP_2)) +
+   geom_point(fill = "#bdbdbd", color = "white", size = 1, shape = 21, stroke = 0.05) +
+   stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 10, geom = "polygon") +
+   format_add_arrows +
+   labs(fill = "Density") +
+   facet_wrap(~MUTATION.GROUP))
+
+filename = paste0(output_dir, "density_all_patients")
+save_plot(filename, overlaid_plot, height = 5, width = 15, png = TRUE)
+write_tsv(singlet_data@meta.data, "tables/figure_1/density_all_patients.tsv")
+
+# Individual patient plot ---------------------------------------------------
+
+output_dir = "figures/figure_3/"
+
+tet2_patient_singlet_metadata = tet2_patient_singlet_data@meta.data
+tet2_patient_singlet_metadata$Clone[tet2_patient_singlet_metadata$Clone == "Mutant"] = "TET2"
+
+(tet2_patient_plot = ggplot(tet2_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
+    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
+    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 100, geom = "polygon") +
+    format_add_arrows +
+  labs(fill = "Density") +
+  facet_wrap(~Clone))
+
+filename = paste0(output_dir, "density_tet2_patient")
+save_plot(filename, tet2_patient_plot, height = 4, width = 8, png = TRUE)
+write_tsv(tet2_patient_singlet_metadata, "tables/figure_3/density_tet2_patient.tsv")
+
+dnmt3a_patient_singlet_metadata = dnmt3a_patient_singlet_data@meta.data
+dnmt3a_patient_singlet_metadata$Clone[dnmt3a_patient_singlet_metadata$Clone == "Mutant"] = "DNMT3A"
+(dnmt3a_patient_plot = ggplot(dnmt3a_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
+    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
+    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 6, geom = "polygon") +
+    format_add_arrows +
+  labs(fill = "Density") +
+  facet_wrap(~Clone))
+
+filename = paste0(output_dir, "density_dnmt3a_patient")
+save_plot(filename, dnmt3a_patient_plot, height = 4, width = 8, png = TRUE)
+write_tsv(dnmt3a_patient_singlet_metadata, "tables/figure_3/density_dnmt3a_patient.tsv")
+
+
+
+  
+
+```
+

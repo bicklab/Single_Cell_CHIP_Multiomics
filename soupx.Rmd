@@ -1,0 +1,83 @@
+---
+title: "soupx"
+output: html_document
+date: '2023-03-01'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+```
+
+## SoupX trial
+
+Load soupx testing data and test :)
+
+```{r, echo = FALSE}
+install.packages("SoupX")
+library(SoupX)
+
+data(PBMC_sc)
+data(PBMC_metaData)
+
+sc = setClusters(sc, setNames(PBMC_metaData$Cluster, rownames(PBMC_metaData)))
+sc = autoEstCont(sc)
+sc = setContaminationFraction(sc, 0.2)
+
+out = adjustCounts(sc)
+srat = CreateSeuratObject(out)
+```
+
+```{r}
+system("gsutil cp gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/input_data/cellranger_output/7373* input_data/cellranger_output/Sample2/")
+
+system("gsutil cp -r gs://bicklab-main-storage/Workspaces/bicklab-chip-scRNAseq/7373_cellranger_output/Sample2 input_data/cellranger_output/")
+
+```
+```{r}
+library(SoupX)
+library(Seurat)
+library(tidyverse)
+
+sc = load10X("input_data/cellranger_output/Sample2")
+sample_2_seurat = readRDS("input_data/cellranger_output/Sample2/7373_2_test.rds")
+sample_2_seurat = NormalizeData(sample_2_seurat)
+sample_2_seurat = ScaleData(sample_2_seurat)
+sample_2_seurat = FindVariableFeatures(sample_2_seurat)
+sample_2_seurat = RunPCA(sample_2_seurat)
+sample_2_seurat = RunUMAP(sample_2_seurat, dims = 1:10)
+sample_2_seurat = FindNeighbors(sample_2_seurat)
+sample_2_seurat = FindClusters(sample_2_seurat)
+
+sc = setClusters(sc, sample_2_seurat@meta.data$seurat_clusters)
+sc = autoEstCont(sc)
+sc = adjustCounts(sc)
+
+sample_2_uncontaminated_seurat = CreateSeuratObject(sc)
+sample_2_uncontaminated_seurat = NormalizeData(sample_2_uncontaminated_seurat)
+sample_2_uncontaminated_seurat = ScaleData(sample_2_uncontaminated_seurat)
+sample_2_uncontaminated_seurat = FindVariableFeatures(sample_2_uncontaminated_seurat)
+sample_2_uncontaminated_seurat = RunPCA(sample_2_uncontaminated_seurat)
+sample_2_uncontaminated_seurat = RunUMAP(sample_2_uncontaminated_seurat, dims = 1:10)
+sample_2_uncontaminated_seurat = FindNeighbors(sample_2_uncontaminated_seurat)
+sample_2_uncontaminated_seurat = FindClusters(sample_2_uncontaminated_seurat)
+
+Idents(sample_2_seurat) = "orig.ident"
+Idents(sample_2_uncontaminated_seurat) = "orig.ident"
+VlnPlot(sample_2_seurat, features = c("nFeature_RNA", "nCount_RNA"), ncol = 3)
+VlnPlot(sample_2_uncontaminated_seurat, features = c("nFeature_RNA", "nCount_RNA"), ncol = 3)
+
+FeaturePlot(sample_2_seurat, features = "IL1B")
+FeaturePlot(sample_2_uncontaminated_seurat, features = "IL1B")
+
+FeaturePlot(sample_2_seurat, features = "CD14")
+FeaturePlot(sample_2_uncontaminated_seurat, features = "CD14")
+
+FeaturePlot(sample_2_seurat, features = "CD3D")
+FeaturePlot(sample_2_uncontaminated_seurat, features = "CD3D")
+
+FeaturePlot(sample_2_seurat, features = "CD19")
+FeaturePlot(sample_2_uncontaminated_seurat, features = "CD19")
+
+View(sample_2_seurat@assays$RNA@counts@i %>% as.data.frame())
+```
+

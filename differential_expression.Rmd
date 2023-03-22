@@ -1,0 +1,101 @@
+---
+title: "ideas_differential_expression"
+output: html_document
+date: '2023-03-20'
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(Seurat)
+library(tidyverse)
+```
+
+# Install IDEAS package.
+```{r}
+library("devtools");
+install_github("Sun-lab/ideas")
+```
+
+
+```{r}
+library(ideas)
+```
+
+```{r}
+sim_data = readRDS("sim_data_ncase_10_nctrl_10_ncell_120_fold_mean_1.2_var_1.5.rds")
+
+count_matrix = sim_data$count_matrix[1:100,]
+meta_cell    = sim_data$meta_cell
+meta_ind     = sim_data$meta_ind
+
+var2test      = "phenotype"
+var2adjust    = "RIN"
+var2test_type = "binary"
+var_per_cell  = "cell_rd"
+
+dist1 = ideas_dist(count_matrix, meta_cell, meta_ind, 
+                   var_per_cell, var2test, var2test_type, 
+                   d_metric = "Was", fit_method = "nb")
+
+pval_ideas = permanova(dist1, meta_ind, var2test, var2adjust, 
+  var2test_type, n_perm=999, r.seed=903)
+
+```
+
+```{r, echo=FALSE}
+system("gsutil cp gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/final_annotated_object.rds rds_objects/")
+```
+
+
+```{r}
+# install glmGamPoi
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("glmGamPoi")
+# install sctransform from Github
+devtools::install_github("satijalab/sctransform", ref = "develop")
+```
+
+
+```{r}
+annotated_seurat = readRDS("rds_objects/final_annotated_object.rds")
+```
+
+```{r}
+annotated_seurat$celltype_group = paste(annotated_seurat$cell_type, annotated_seurat$GROUP, sep = "_")
+Idents(annotated_seurat) = "celltype_group"
+
+library(future)
+plan(multisession)
+options(future.globals.maxSize = 20000*1024^2)
+
+f = future({
+  prepped_annotated_seurat = PrepSCTFindMarkers(annotated_seurat)
+  saveRDS(prepped_annotated_seurat, "rds_objects/prepped_annotated_seurat.rds")
+})
+
+```
+```{r}
+b.interferon.response <- FindMarkers(immune.combined.sct, assay = "SCT", ident.1 = "B_STIM", ident.2 = "B_CTRL",
+    verbose = FALSE, test.use = "DESeq2")
+head(b.interferon.response, n = 15)
+
+# If running on a subset of the original object after running PrepSCTFindMarkers(), FindMarkers() should be invoked with recorrect_umi = FALSE to use the existing corrected counts.
+immune.combined.sct.subset <- subset(immune.combined.sct, idents = c("B_STIM", "B_CTRL"))
+b.interferon.response.subset <- FindMarkers(immune.combined.sct.subset, assay = "SCT", ident.1 = "B_STIM",
+    ident.2 = "B_CTRL", verbose = FALSE, recorrect_umi = FALSE)
+```
+
+```{r}
+Idents(immune.combined.sct) <- "seurat_annotations"
+DefaultAssay(immune.combined.sct) <- "SCT"
+FeaturePlot(immune.combined.sct, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3,
+    cols = c("grey", "red"))
+```
+
+```{r}
+plots <- VlnPlot(immune.combined.sct, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim",
+    group.by = "seurat_annotations", pt.size = 0, combine = FALSE)
+wrap_plots(plots = plots, ncol = 1)
+```
+
