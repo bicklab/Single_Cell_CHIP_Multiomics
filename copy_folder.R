@@ -18,8 +18,13 @@ system("gsutil cp  gs://bicklab-main-storage/Workspaces/bicklab-chip-scRNAseq/in
 system("gsutil cp -r ../* gs://fc-e44e4e80-489e-4c0f-a2a7-a96718d54f46/")
 system("gsutil cp gs://bicklab-main-storage/Users/Brett_Heimlich/shared/seurat_DF_Harmony_KEEP.rds rds_objects/")
 system("gsutil cp gs://bicklab-main-storage/Users/Brett_Heimlich/shared/seurat_DF.rds rds_objects/")
+system("gsutil cp rds_objects/scaled_filtered_annotated_seurat.rds gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/")
 
 system("gsutil cp rds_objects/seurat_df_harmony_keep_0_75_annotated.rds gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/")
+system("gsutil cp gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/input_data/qupath/matrix* input_data/qupath/")
+
+system("gsutil cp -r ../Single_Cell_CHIP gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/")
+system("gsutil cp -r tables/meta_pseudobulk gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/tables/")
 
 
 # Transfer specific folders  ----------------------------------------------

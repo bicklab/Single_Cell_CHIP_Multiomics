@@ -1,0 +1,68 @@
+---
+title: "pathway_analysis"
+output: html_document
+date: '2023-03-24'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+#source("../scripts/image_formatting.R")
+library(clusterProfiler)
+library(tidyverse)
+```
+
+```{r}
+output_dir = "figures/pathway_analysis/"
+
+# Load cluster profiler input
+organism = "org.Hs.eg.db"
+#BiocManager::install(organism, character.only = TRUE)
+library(organism, character.only = TRUE)
+library(clusterProfiler)
+
+find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = TRUE) {
+  # load expression data from stats output
+  folder = "tables/de_wilcox/"
+  pattern = paste0("^", sample_genotype, "_", gsub(" ", "_", gsub("+", "\\+", cell_type, fixed = TRUE)), "_", stim_status, ".*")
+  print(pattern)
+
+  input_filename = list.files(folder, pattern)
+  exp_data = read_csv(paste0(folder, input_filename))
+
+  # format gene list
+  gene_list = exp_data %>%
+    dplyr::select(Gene, avg_log2FC) %>%
+    dplyr::arrange(desc(avg_log2FC)) %>%
+    tibble::deframe()
+  
+  # written with trycatch to avoid errors with empty lists
+  tryCatch({
+    # identify enriched pathways
+    gse = gseGO(geneList = gene_list, keyType = "SYMBOL", OrgDb = organism, ont = "ALL", minGSSize = 2, maxGSSize = 800, pvalueCutoff = ifelse(use_cutoff, 0.05, 1))
+
+    # save plots
+    filename = paste0(output_dir, "dotplot_", sample_genotype, "_", cell_type, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status)
+    title = paste(sample_genotype, gsub("_", " ", cell_type))
+    (plot = dotplot(gse) + 
+        format_colors_desc + 
+        ggtitle(title))
+    save_plot(filename, plot, height = 6, width = 6, png = TRUE)
+  },
+  error = function(cond) {
+    message(cond)
+    return("Error rendering plot.")
+  })
+}
+
+sample_genotypes = c("DNMT3A", "TET2")
+filtered_annotated_seurat = readRDS("rds_objects/filtered_annotated_seurat.rds")
+cell_types = filtered_annotated_seurat@meta.data$cell_type %>% unique()
+
+for (sample_genotype in sample_genotypes) {
+  for (cell_type in cell_types) {
+    find_pathways(sample_genotype, cell_type, stim_status = "unstim")
+    find_pathways(sample_genotype, cell_type, stim_status = "stim")
+  }
+}
+```
+

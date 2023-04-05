@@ -9,11 +9,14 @@ knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(Seurat)
 library(tidyverse)
+library(ggradar)
 
 # CHANGE THIS TO PREPPED ANNOTATED SEURAT
-#annotated_seurat = readRDS("rds_objects/final_annotated_object.rds")
+annotated_seurat = readRDS("../rds_objects/final_annotated_object.rds")
 
 output_dir = "figures/"
+
+source("../scripts/image_formatting.R")
 ```
 
 # Plot UMAP.
@@ -49,7 +52,7 @@ get_vaf_identifier = function(vaf, group) {
 }
 
 vaf_identifiers = annotated_seurat@meta.data %>%
-  dplyr::select(orig.ident, MUTATION, MUTATION.GROUP) %>%
+  dplyr::select(CHIVEID, MUTATION, MUTATION.GROUP) %>%
   unique() %>%
   rowwise() %>%
   mutate(VAF = get_vaf(MUTATION, MUTATION.GROUP)) %>%
@@ -66,44 +69,32 @@ umap_patient_level_data = annotated_seurat@meta.data %>%
 
 filename = paste0(output_dir, "umap_patient_level")
 save_plot(filename, umap_patient_level_plot, height = 8, width = 8.5, png = TRUE)
-write_tsv(umap_patient_level_data, "tables/umap_patient_level.tsv")
-
-
 
 ```
 
 # Plot radar.
 ```{r}
 
-# Radar plots -----------------------------------------------------------
-
-source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/source_singlet_data.R")
-source("/home/rstudio/bicklab-aps/edit/Single_Cell_CHIP/scripts/image_formatting.R")
-
-
 summarize_data = function(data, grouping_category) {
-  ignore_cells = c("Eryth", "HSPC", "Plasmablast", "MAIT")
+  ignore_cells = c()
   summary_stats = data@meta.data %>%
-    filter(!(celltype.de %in% ignore_cells)) %>%
-    group_by(across(all_of(grouping_category)), celltype.de) %>%
-    summarize(count = n()) %>%
-    mutate(proportion = count / sum(count)) %>%
-    mutate(celltype.de = factor(celltype.de, levels = c("CD4 T cell", "CD14 Mono", "CD8 T cell", "NK", "B", "CD16 Mono", "DC", "Platelet"))) %>%
-    arrange(celltype.de) %>%
+    dplyr::filter(!(cell_type %in% ignore_cells)) %>%
+    dplyr::group_by(across(all_of(grouping_category)), cell_type) %>%
+    dplyr::summarize(count = dplyr::n()) %>%
+    dplyr::mutate(proportion = count / sum(count)) %>%
+    dplyr::mutate(cell_type = factor(cell_type, levels = c("CD14 Monos", "CD4+ T cells", "CD8+ T cells", "NK", "B", "CD16 Monos", "Dendritic cells",  "Erythroid-like cells", "Platelets"))) %>%
+    dplyr::arrange(cell_type) %>%
     dplyr::select(-count) %>%
     na.omit() %>%
-    pivot_wider(names_from = celltype.de, values_from = proportion)
+    tidyr::pivot_wider(names_from = cell_type, values_from = proportion)
   return(summary_stats)
 }
 
 # All patients ------------------------------------------------------------
-
-output_dir = "figures/figure_1/"
-
-summary_stats = summarize_data(singlet_data, "MUTATION.GROUP")
+summary_stats = summarize_data(annotated_seurat, "MUTATION.GROUP")
 
 radar_stats = summary_stats %>%
-  mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("Control", "TET2", "DNMT3A")))
+  dplyr::mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("none", "TET2", "DNMT3A")))
 
 (radar_plot = ggradar(radar_stats, 
                 values.radar = c(0, 0.2,0.5), 
@@ -114,154 +105,259 @@ radar_stats = summary_stats %>%
                 background.circle.colour = "white",
                 gridline.mid.colour = "grey",
                 legend.position = "bottom") +
-  theme(plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
-  coord_cartesian(clip = "off"))
+  ggplot2::theme(plot.margin = ggplot2::margin(0, 1.5, 0, 1.5, 'cm')) +
+  ggplot2::coord_cartesian(clip = "off"))
 
-filename = paste0(output_dir, "radar_myeloid_skew")
+filename = paste0(output_dir, "radar_all_data")
 save_plot(filename, radar_plot, height = 4, width = 5, transparent = TRUE)
-write_tsv(radar_stats, "tables/figure_1/radar_myeloid_skew.tsv")
-
-
-# TET2 patient ------------------------------------------------------
-
-output_dir = "figures/figure_3/"
-
-summary_stats_tet2 = summarize_data(tet2_patient_singlet_data, "Clone")
-summary_stats_tet2[is.na(summary_stats_tet2)] = 0
-summary_stats_tet2[3,] = summary_stats[1,c(1:6, 8:9)]
-
-tet2_patient_radar_stats = summary_stats_tet2 %>%
-  mutate(Clone = factor(Clone, levels = c("Wildtype", "Mutant", "Control")))
-
-(tet2_patient_radar = ggradar(tet2_patient_radar_stats, 
-                values.radar = c(0, 0.5, 1), 
-                group.line.width = 0.75,
-                group.point.size = 1.5,
-                group.colours = wes_palette("Royal1", 20, "continuous")[c(1,7,18)],
-                background.circle.colour = "white",
-                gridline.mid.colour = "grey",
-                legend.position = "bottom") +
-    theme(
-      plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
-    coord_cartesian(clip = "off"))
-
-filename = paste0(output_dir, "radar_tet2_patient")
-save_plot(filename, tet2_patient_radar, height = 4, width = 5)
-write_tsv(tet2_patient_radar_stats, "tables/figure_3/radar_tet2_patient.tsv")
-
-
-# DNMT3A patient ------------------------------------------------------
-
-output_dir = "figures/figure_3/"
-
-summary_stats_dnmt3a = summarize_data(dnmt3a_patient_singlet_data, "Clone")
-summary_stats_dnmt3a[is.na(summary_stats_dnmt3a)] = 0
-summary_stats_dnmt3a[3,] = summary_stats[1,c(1:9)]
-
-dnmt3a_patient_radar_stats = summary_stats_dnmt3a %>%
-  mutate(Clone = factor(Clone, levels = c("Wildtype", "Mutant", "Control")))
-
-(dnmt3a_patient_radar = ggradar(dnmt3a_patient_radar_stats, 
-                              values.radar = c(0, 0.5, 1), 
-                              group.line.width = 0.75,
-                              group.point.size = 1.5,
-                              group.colours = wes_palette("Royal1", 20, "continuous")[c(1,7,18)],
-                              background.circle.colour = "white",
-                              gridline.mid.colour = "grey",
-                              legend.position = "bottom") +
-    theme(
-      plot.margin = margin(0, 1.5, 0, 1.5, 'cm')) +
-    coord_cartesian(clip = "off"))
-
-filename = paste0(output_dir, "radar_dnmt3a_patient")
-save_plot(filename, dnmt3a_patient_radar, height = 4, width = 5)
-write_tsv(dnmt3a_patient_radar_stats, "tables/figure_3/radar_dnmt3a_patient.tsv")
-
-
-
-
-
+write_tsv(radar_stats, "tables/radar_all_data.tsv")
 
 ```
 
 
-# Plot density.
+# Plot UMAP.
 ```{r}
 
 # All patients plot ---------------------------------------------------------
 
-output_dir = "figures/figure_1/"
-
-
-Idents(singlet_data) = "celltype.de"
-relevant_cell_type_data = subset(singlet_data, idents = c("CD4 T cell", "CD14 Mono", "CD8 T cell", "NK", "B", "CD16 Mono", "DC", "Platelet"))
-
-set.seed(123)
-royal = wes_palette("Royal1", 10, "continuous")[c(1,2,3,4,5,6,9,10)] %>% sample(8)
-
-
-(all_data_plot = DimPlot(object = relevant_cell_type_data, reduction = "proj.umap", group.by = "celltype.de", label = FALSE, repel = T, raster = F, cols = royal, pt.size = 0.1) +
-  NoLegend() +
-  NoAxes() +
-  guides(color = guide_legend(override.aes = list(size=6), ncol=1)) +
-  theme(plot.title = element_blank()) +
-  annotate(x=-16, xend=-16, y=-16, yend=-8, colour="black", lwd=1, geom="segment", arrow = arrow(length = unit(0.1, "inches"))) +
-  annotate(x=-16, xend=-11, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = arrow(length = unit(0.1, "inches"))) +
-  annotate("text", label="UMAP 1", x=-17, -13, size = 4, angle = 90) +
-  annotate("text", label="UMAP 2", x=-14, y=-18, size = 4))
+length(unique(annotated_seurat@meta.data$cell_type))
+(all_data_umap = ggplot2::ggplot(annotated_seurat@meta.data, ggplot2::aes(x = UMAP_1, y = UMAP_2, color = cell_type)) +
+    ggplot2::geom_point() +
+    ggplot2::scale_color_manual(values = wes_palette("Royal1", 10, "continuous")[c(1,2,3,4,5,6,8,9,10)]) +
+    format_add_arrows)
 
 filename = paste0(output_dir, "umap_all_data")
-save_plot(filename, all_data_plot, height = 5, width = 5, png = TRUE)
+save_plot(filename, all_data_umap, height = 4, width = 5, png = TRUE)
+
+```
 
 
-# Density plot by genotype -----------------------------------------------
+# Plot heatmap.
+```{r}
+num_cell_per_type = 500
+num_top_genes = 10
 
+cells_to_sample = annotated_seurat@meta.data %>%
+  group_by(cell_type) %>%
+  sample_n(num_cell_per_type) %>%
+  pull(cell_ID)
 
-(overlaid_plot = ggplot(singlet_data@meta.data, aes(x = UMAP_1, y = UMAP_2)) +
+heatmap_data = annotated_seurat[, cells_to_sample]
+
+pbmc_markers = FindAllMarkers(heatmap_data, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+top_10 = pbmc_markers %>%
+  group_by(cluster) %>%
+  top_n(n = 10, wt = avg_log2FC)
+
+(heatmap = DoHeatmap(heatmap_data, features = top_10$gene, raster = FALSE, size = 4, group.bar.height = 0) + 
+    guides(color = "none"))
+
+filename = "figures/cell_identity_heatmap"
+save_plot(filename, heatmap, width = 7, height = 13, png = TRUE)
+
+```
+
+# Plot feature plots.
+```{r}
+seurat_with_umap = readRDS("rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds")
+
+Idents(seurat_with_umap) = "STIM"
+unstim_data = subset(seurat_with_umap, idents = "VEH")
+
+features = c("IL7R", "LYZ", "CD14", "MS4A1", "CD8A", "GNLY", "NKG7", "CST3", "PPBP")
+plots = FeaturePlot(seurat_with_umap, features = features, combine = FALSE)
+
+for (i in 1:length(plots)) {
+  if (i != 6) {
+    plots[[i]] = plots[[i]] + NoLegend() + format_no_axes
+  } else {
+    plots[[i]] = plots[[i]] + format_no_axes
+  }
+}
+
+(feature_plot = cowplot::plot_grid(plotlist = plots))
+filename = paste0(output_dir, "feature_canonical")
+save_plot(filename, feature_plot, height = 8, width = 8, png = TRUE)
+
+```
+
+# Plot violin.
+```{r}
+
+Idents(annotated_seurat) = "cell_type"
+VlnPlot(annotated_seurat, features = "IL1B", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "CXCL3", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "LGALS3", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "NEAT1", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "SOD2", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "VIM", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "HLA-DRA", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+VlnPlot(annotated_seurat, features = "OLR1", idents = "CD14 Monos", split.by = "GROUP", pt.size = 0)
+
+```
+
+# Density plot.
+```{r}
+
+(overlaid_plot = ggplot(annotated_seurat@meta.data, aes(x = UMAP_1, y = UMAP_2)) +
    geom_point(fill = "#bdbdbd", color = "white", size = 1, shape = 21, stroke = 0.05) +
-   stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 10, geom = "polygon") +
+   stat_density2d(aes(alpha = after_stat(level)), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 5, geom = "polygon") +
    format_add_arrows +
    labs(fill = "Density") +
    facet_wrap(~MUTATION.GROUP))
 
-filename = paste0(output_dir, "density_all_patients")
+filename = paste0(output_dir, "density_all_data")
 save_plot(filename, overlaid_plot, height = 5, width = 15, png = TRUE)
-write_tsv(singlet_data@meta.data, "tables/figure_1/density_all_patients.tsv")
+```
 
-# Individual patient plot ---------------------------------------------------
+# Plot mutation upset.
+```{r}
+# umap_patient_level_data is defined above when plotting patient-level umaps -> essentially the meta data combined with VAFs
 
-output_dir = "figures/figure_3/"
+get_mutations = function(mutation) {
+  mutations = str_split(mutation, ", ")
+  mutation_vector = lapply(mutations, str_extract, pattern = "[^ ]+")
+  return(mutation_vector)
+}
 
-tet2_patient_singlet_metadata = tet2_patient_singlet_data@meta.data
-tet2_patient_singlet_metadata$Clone[tet2_patient_singlet_metadata$Clone == "Mutant"] = "TET2"
+get_vafs = function(mutation) {
+  mutations = str_split(mutation, ", ")
+  mutation_vector = lapply(mutations, str_extract, pattern = "\\([^%]+")
+  clean_mutation_vector = lapply(mutation_vector, substring, 2)
+  numeric_mutation_vector = lapply(clean_mutation_vector, as.numeric)
+  return(clean_mutation_vector)
+}
 
-(tet2_patient_plot = ggplot(tet2_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
-    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
-    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 100, geom = "polygon") +
-    format_add_arrows +
-  labs(fill = "Density") +
-  facet_wrap(~Clone))
+mutation_data = umap_patient_level_data %>%
+  dplyr::select(CHIVEID, MUTATION, VAF) %>%
+  unique() %>%
+  rowwise() %>%
+  mutate(Mutations = get_mutations(MUTATION)) %>%
+  mutate(VAFs = get_vafs(MUTATION)) %>%
+  mutate(Mutation_Group = paste(Mutations %>% unique() %>% sort(), collapse = " "))
 
-filename = paste0(output_dir, "density_tet2_patient")
-save_plot(filename, tet2_patient_plot, height = 4, width = 8, png = TRUE)
-write_tsv(tet2_patient_singlet_metadata, "tables/figure_3/density_tet2_patient.tsv")
-
-dnmt3a_patient_singlet_metadata = dnmt3a_patient_singlet_data@meta.data
-dnmt3a_patient_singlet_metadata$Clone[dnmt3a_patient_singlet_metadata$Clone == "Mutant"] = "DNMT3A"
-(dnmt3a_patient_plot = ggplot(dnmt3a_patient_singlet_metadata, aes(x = UMAP_1, y = UMAP_2)) +
-    geom_point(fill = "#bdbdbd", color = "white", shape = 21, stroke = 0.05) +
-    stat_density2d(aes(alpha = ..level..), fill = wes_palette("Royal1", 20, "continuous")[7], bins = 6, geom = "polygon") +
-    format_add_arrows +
-  labs(fill = "Density") +
-  facet_wrap(~Clone))
-
-filename = paste0(output_dir, "density_dnmt3a_patient")
-save_plot(filename, dnmt3a_patient_plot, height = 4, width = 8, png = TRUE)
-write_tsv(dnmt3a_patient_singlet_metadata, "tables/figure_3/density_dnmt3a_patient.tsv")
+write_tsv(mutation_data, "tables/mutation_data.tsv")
 
 
+mutation_list = mutation_data$Mutations %>% lapply(paste, sep = "&")
 
+# list of sets, each set is a mutation
+unique_mutations = mutation_data$Mutations %>% unlist() %>% unique()
+
+tet2_data = c()
+srsf2_data = c()
+dnmt3a_data = c()
+idh2_data = c()
+tp53_data = c()
+none_data = c()
+
+tet2_vaf = c()
+srsf2_vaf = c()
+dnmt3a_vaf = c()
+idh2_vaf = c()
+tp53_vaf = c()
+none_vaf = c()
+
+full_data = c("Entry", "VAF", "Mutation_Group")
   
+  
+for (i in 1:length(mutation_data$Mutations)) {
+  entry = mutation_data$Mutations[i] %>% unlist()
+  vafs = mutation_data$VAFs[i] %>% unlist()
+  mutation_group = mutation_data$Mutation_Group[i]
+  
+  for (j in 1:length(entry)) {
+    sub_entry = entry[j]
+    vaf = vafs[j]
+    
+    new_line = c(sub_entry, as.numeric(vaf), mutation_group)
+    full_data = rbind(full_data, new_line)
+    
+    if ("TET2" == sub_entry) {
+      tet2_data = c(tet2_data, i)
+      tet2_vaf = c(tet2_vaf, vaf)
+    }
+    if ("SRSF2" == sub_entry) {
+      srsf2_data = c(srsf2_data, i)
+      srsf2_vaf = c(srsf2_vaf, vaf)
+    }
+    if ("DNMT3A" == sub_entry) {
+      dnmt3a_data = c(dnmt3a_data, i)
+      dnmt3a_vaf = c(dnmt3a_vaf, vaf)
+    }
+    if ("IDH2" == sub_entry) {
+      idh2_data = c(idh2_data, i)
+      idh2_vaf = c(idh2_vaf, vaf)
+    }
+    if ("TP53" == sub_entry) {
+      tp53_data = c(tp53_data, i)
+      tp53_vaf = c(tp53_vaf, vaf)
+    }
+    if ("none" == sub_entry) {
+      none_data = c(none_data, i)
+      none_vaf = c(none_vaf, "0")
+    }
+  }
+}
+
+list_mutation_data = list(
+  "TET2" = tet2_data, "SRSF2" = srsf2_data, "DNMT3A" = dnmt3a_data, "IDH2" = idh2_data, "TP53" = tp53_data, "None" = none_data
+)
+list_vaf_data = list(
+  "TET2" = tet2_vaf, "SRSF2" = srsf2_vaf, "DNMT3A" = dnmt3a_vaf, "IDH2" = idh2_vaf, "TP53" = tp53_vaf, "None" = none_vaf
+)
+
+library(UpSetR)
+(upset_plot = upset(fromList(list_mutation_data), nsets = 7, keep.order = T, mb.ratio = c(0.3, 0.7),
+      sets = c("None", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"), text.scale = 1.5,
+      main.bar.color = wes_palette("Royal1", 8, "continuous")[c(1,4,3,7,2)], mainbar.y.label = element_blank(), mainbar.y.max = 11, sets.x.label = element_blank()))
+
+filename = paste0(output_dir, "upset_mutations")
+pdf(file = paste0(filename, ".pdf"), width = 4, height = 4)
+upset_plot
+write = dev.off()
+
+
+matrix_mutation_data = plyr::ldply(list_mutation_data, rbind)
+write_tsv(matrix_mutation_data, paste0(gsub("figures", "tables", filename), ".tsv"))
+
+
+colnames(full_data) = full_data[1,]
+full_data = full_data[-1,]
+full_data[is.na(full_data)] = 0
+full_data[full_data == "?ASXL1G645fs"] = "ASXL1"
+full_data[full_data == "?ASXL1G645fs TET2"] = "TET2"
+
+full_data = as.data.frame(full_data) %>%
+  mutate(VAF = as.numeric(VAF)) %>%
+  mutate(Entry = factor(Entry, levels = c("none", "TP53", "IDH2", "SRSF2", "TET2", "DNMT3A"))) %>%
+  mutate(Mutation_Group = factor(Mutation_Group, levels = c("DNMT3A", "none", "TET2", "SRSF2 TET2", "DNMT3A IDH2 TP53"))) %>%
+  na.omit()
+
+
+(dot_vafs = ggplot(full_data %>% as.data.frame(), aes(x = Entry, y = VAF)) +
+    geom_rect(aes(fill = Entry, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, alpha = 0.05), show.legend = FALSE) +
+    geom_point(size = 3, aes(color = Mutation_Group)) +
+  theme_bw() +
+  theme(text = element_text(size = 18), 
+        axis.text.x = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.text.y = element_text(angle = -90, vjust = 1), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(angle = -90),
+        panel.border = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "none",
+        strip.text = element_blank()) +
+    ylab("VAF") +
+    scale_y_reverse() +
+    scale_color_manual(values = wes_palette("Royal1", 8, "continuous")[c(1,4,3,7,8,2)]) +
+    scale_fill_manual(values = c("#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0")) +
+  facet_grid(~Entry, scales = "free"))
+filename = paste0(output_dir, "dot_vafs")
+save_plot(filename, dot_vafs, height = 2)
+write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
 
 ```
 
