@@ -1,0 +1,750 @@
+---
+title: "ideas_differential_expression"
+output: html_document
+date: '2023-03-20'
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(Seurat)
+library(tidyverse)
+```
+
+# Install IDEAS package.
+```{r}
+library("devtools");
+install_github("Sun-lab/ideas")
+library(ideas)
+```
+# Code for IDEAS analysis. 
+```{r}
+sim_data = readRDS("sim_data_ncase_10_nctrl_10_ncell_120_fold_mean_1.2_var_1.5.rds")
+
+count_matrix = sim_data$count_matrix[1:100,]
+meta_cell    = sim_data$meta_cell
+meta_ind     = sim_data$meta_ind
+
+var2test      = "phenotype"
+var2adjust    = "RIN"
+var2test_type = "binary"
+var_per_cell  = "cell_rd"
+
+dist1 = ideas_dist(count_matrix, meta_cell, meta_ind, 
+                   var_per_cell, var2test, var2test_type, 
+                   d_metric = "Was", fit_method = "nb")
+
+pval_ideas = permanova(dist1, meta_ind, var2test, var2adjust, 
+  var2test_type, n_perm=999, r.seed=903)
+
+```
+
+```{r, echo=FALSE}
+system("gsutil cp gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/final_annotated_object.rds rds_objects/")
+```
+
+
+```{r}
+# install glmGamPoi
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("glmGamPoi")
+# install sctransform from Github
+devtools::install_github("satijalab/sctransform", ref = "develop")
+```
+
+```{r}
+filtered_annotated_seurat = readRDS("rds_objects/filtered_annotated_seurat.rds")
+```
+
+```{r}
+library(glmGamPoi)
+
+filtered_annotated_seurat$celltype_group = paste(filtered_annotated_seurat$cell_type, filtered_annotated_seurat$GROUP, sep = "_")
+Idents(filtered_annotated_seurat) = "celltype_group"
+
+library(future)
+plan(multisession)
+options(future.globals.maxSize = 20000*1024^2)
+
+f = future({
+  prepped_filtered_annotated_seurat = PrepSCTFindMarkers(filtered_annotated_seurat)
+  saveRDS(prepped_filtered_annotated_seurat, "rds_objects/prepped_filtered_annotated_seurat.rds")
+})
+
+```
+
+# Code to run in a WDL.
+```{r}
+filtered_annotated_seurat = readRDS("filtered_annotated_seurat.rds") # saved in gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/filtered_annotated_seurat.rds
+filtered_annotated_seurat$celltype_group = paste(filtered_annotated_seurat$cell_type, filtered_annotated_seurat$GROUP, sep = "_")
+Idents(filtered_annotated_seurat) = "celltype_group"
+prepped_filtered_annotated_seurat = PrepSCTFindMarkers(filtered_annotated_seurat)
+saveRDS(prepped_filtered_annotated_seurat, "prepped_filtered_annotated_seurat.rds")
+```
+
+```{r}
+# b.interferon.response <- FindMarkers(immune.combined.sct, assay = "SCT", ident.1 = "B_STIM", ident.2 = "B_CTRL",
+#     verbose = FALSE, test.use = "DESeq2")
+# head(b.interferon.response, n = 15)
+# 
+# # If running on a subset of the original object after running PrepSCTFindMarkers(), FindMarkers() should be invoked with recorrect_umi = FALSE to use the existing corrected counts.
+# immune.combined.sct.subset <- subset(immune.combined.sct, idents = c("B_STIM", "B_CTRL"))
+# b.interferon.response.subset <- FindMarkers(immune.combined.sct.subset, assay = "SCT", ident.1 = "B_STIM",
+#     ident.2 = "B_CTRL", verbose = FALSE, recorrect_umi = FALSE)
+```
+
+
+```{r}
+
+# Wilcoxon differential expression analysis  -------------------------------
+output_dir = "tables/de_wilcox/"
+
+# Prep data ---------------------------------------------------------------
+
+DefaultAssay(filtered_annotated_seurat) = "RNA"
+filtered_annotated_seurat = NormalizeData(filtered_annotated_seurat, assay = "RNA")
+scaled_filtered_annotated_seurat = ScaleData(filtered_annotated_seurat, assay = "RNA", split.by = "GROUP", vars.to.regress = c("LANE", "AGE"))
+saveRDS(scaled_filtered_annotated_seurat, "rds_objects/scaled_filtered_annotated_seurat.rds")
+
+
+# Separate vehicle and stim data
+Idents(filtered_annotated_seurat) = "STIM"
+veh_data = subset(filtered_annotated_seurat, idents = "VEH")
+stim_data = subset(filtered_annotated_seurat, idents = "STIM")
+
+# Prep for stats
+cell_types = filtered_annotated_seurat@meta.data$cell_type %>% unique()
+sample_genotypes = c("DNMT3A", "TET2")
+
+# Run stats ---------------------------------------------------------------
+plan(multisession)
+options('future.globals.maxSize' = 30000*1024^2)
+
+run_stats = function(data, stim_status, method = "wilcox") {
+  for (cell_type in cell_types) {
+    for (sample_genotype in sample_genotypes) {
+  
+      # Identify case and control data
+      if (sample_genotype == "CHIP") {
+        case_idents = c("TET2", "DNMT3A")
+      } else {
+        case_idents = sample_genotype
+      }
+      
+      control_idents = "none"
+      Idents(data) = "cell_type"
+      
+      # Run statistics
+      response = FindMarkers(data, 
+                             subset.ident = cell_type,
+                             group.by = "MUTATION.GROUP",
+                             ident.1 = case_idents,
+                             ident.2 = control_idents,
+                             test.use = method,
+                             assay = "RNA")
+      
+      # Arrange data
+      clean_response = response %>%
+        arrange(p_val_adj) %>%
+        na.omit() %>%
+        rownames_to_column("Gene") 
+      
+      # Save output
+      filename = paste0(output_dir, sample_genotype, "_", gsub(" ", "_", cell_type), "_", stim_status, "_", method, ".csv")
+      write_csv(clean_response, file = filename)
+    }
+  }
+}
+
+future(run_stats(veh_data, "unstim"))
+future(run_stats(stim_data, "stim"))
+
+run_stats(veh_data, "unstim")
+run_stats(stim_data, "stim")
+
+
+
+```
+
+## Pseudobulk method based on https://github.com/elolab/multisubjectDSanalysis
+# Pseudobulk functions.
+```{r}
+
+CreatePseudoBulkData <- function(raw.data,normalized.data,sample.id,fun="sum")
+{
+  # fun can be "sum" or "mean"
+  library(muscat)
+  library(SingleCellExperiment)
+  
+  if (fun=="sum")
+  {
+    sce <- SingleCellExperiment(assays=list(counts=raw.data),colData=DataFrame(sample_id=sample.id))
+  } else if (fun=="mean") {
+    sce <- SingleCellExperiment(assays=list(counts=normalized.data),colData=DataFrame(sample_id=sample.id))
+  }
+  pb <- aggregateData(sce, assay = "counts", fun=fun, by=c("sample_id"))
+  return(pb)
+}
+
+
+RunPseudobulkMethod <- function(raw.data,normalized.data,individual,group,test="ROTS",sum.or.mean="sum")
+{
+  pb <- CreatePseudoBulkData(raw.data = raw.data,normalized.data = normalized.data, 
+                             sample.id = individual,fun = sum.or.mean)
+  
+  if (test=="ROTS")
+  {
+    
+    group <- apply(as.matrix(table(individual,group)),1,function(x) x[1]==0)
+    group_names <- names(group)
+    group <- as.numeric(group)
+    names(group) <- group_names
+    group <- group[colnames(pb)]
+    
+    library(SingleCellExperiment)
+    library(edgeR)
+    library(ROTS)
+    
+    if (sum.or.mean=="sum")
+    {
+      y <- DGEList(assay(pb), remove.zeros = T)
+      y <- calcNormFactors(y)
+      logcpm <- edgeR::cpm(y, normalized.lib.sizes=T, prior.count=1, log=T)
+      resrots <- ROTS(data = logcpm, groups = group, seed = 1234)
+    } 
+    else if (sum.or.mean == "mean") 
+    {
+      y <- assay(pb)
+      print(dim(y))
+      y <- y[apply(y,1,sum)!=0,]
+      print(dim(y))
+      resrots <- ROTS(data = y, groups = group, seed = 1234)
+    }
+    rotsdf <- as.data.frame(resrots$logfc)
+    rotsdf$gene <- rownames(rotsdf)
+    rotsdf <- cbind(rotsdf, resrots$pvalue)
+    rotsdf <- cbind(rotsdf, resrots$FDR)
+    rownames(rotsdf) <- 1:nrow(rotsdf)
+    colnames(rotsdf) <- c("logFC", "gene", "pvalue", "FDR")
+    rotsdf <- rotsdf[,c("logFC", "pvalue", "FDR","gene")]
+    colnames(rotsdf) <- c("logFC","pvalue","padj","gene")
+    return(rotsdf)
+    
+  }
+  
+  else if (test=="Limma")
+  {
+    library(edgeR)
+    library(limma)
+    
+    group <- apply(as.matrix(table(individual,group)),1,function(x) x[1]==0)
+    group_names <- names(group)
+    group <- as.numeric(group)
+    names(group) <- group_names
+    group <- group[colnames(pb)]
+    group <- plyr::mapvalues(group,from = c(0,1),to = c("A","B"))
+    
+    
+    #Make the model and contrast for statistical testing
+    mm_highcells <- model.matrix(~0 + factor(as.character(group)))
+    dimnames(mm_highcells) <- list(names(group), levels(factor(as.character(group))))
+    mm_highcells <- mm_highcells[colnames(pb),]
+    contrast_highcells <- makeContrasts("B-A", levels = mm_highcells)
+    
+    if (sum.or.mean == "sum")
+    {
+      dge <- DGEList(counts = assay(pb), remove.zeros = T)
+      dge <- calcNormFactors(dge)
+      v <- voom(dge, design = mm_highcells, plot = F)
+      fit <- lmFit(v, design = mm_highcells)
+      fit2 <- contrasts.fit(fit, contrasts = contrast_highcells)
+      fit2 <- eBayes(fit2)
+      limma_out <- topTable(fit2, number = nrow(dge))
+      
+    } else {
+      v <- assay(pb)
+      v <- v[apply(v,1,sum)!=0,]
+      fit <- lmFit(v, design = mm_highcells)
+      fit2 <- contrasts.fit(fit, contrasts = contrast_highcells)
+      fit2 <- eBayes(fit2)
+      limma_out <- topTable(fit2, number = nrow(v))
+      
+    }
+    df <- limma_out[,c("logFC","P.Value","adj.P.Val")]
+    df$gene <- rownames(limma_out)
+    colnames(df) <- c("logFC","pvalue","padj","gene")
+    
+    return(df)
+  }
+  
+  
+  else if (test=="edgeR")
+  {
+    library(edgeR)
+    library(limma)
+    
+    group <- apply(as.matrix(table(individual,group)),1,function(x) x[1]==0)
+    group_names <- names(group)
+    group <- as.numeric(group)
+    names(group) <- group_names
+    group <- group[colnames(pb)]
+    group <- plyr::mapvalues(group,from = c(0,1),to = c("A","B"))
+    
+    
+    #Make the model and contrast for statistical testing
+    mm_highcells <- model.matrix(~0 + factor(as.character(group)))
+    dimnames(mm_highcells) <- list(names(group), levels(factor(as.character(group))))
+    mm_highcells <- mm_highcells[colnames(pb),]
+    contrast_highcells <- makeContrasts("B-A", levels = mm_highcells)
+    
+    
+    dge <- DGEList(counts = assay(pb), group = group, remove.zeros = T)
+    dge <- calcNormFactors(dge)
+    dge <- estimateDisp(dge, design = mm_highcells)
+    fit <- glmQLFit(dge, design = mm_highcells)
+    fit2 <- glmQLFTest(fit, contrast = contrast_highcells)
+    tt <- topTags(fit2, n = nrow(dge))
+    edger_out <- tt$table
+    
+    df <- edger_out[,c("logFC","PValue","FDR")]
+    df$gene <- rownames(edger_out)
+    colnames(df) <- c("logFC","pvalue","padj","gene")
+    
+    
+    return(df)
+  }
+  
+  
+  else if (test=="DESeq2")
+  {
+    library(limma)
+    library(edgeR)
+    library(DESeq2)
+    
+    group <- apply(as.matrix(table(individual,group)),1,function(x) x[1]==0)
+    group_names <- names(group)
+    group <- as.numeric(group)
+    names(group) <- group_names
+    group <- group[colnames(pb)]
+    group <- plyr::mapvalues(group,from = c(0,1),to = c("A","B"))
+    
+    
+    #Make the model and contrast for statistical testing
+    mm_highcells <- model.matrix(~0 + factor(as.character(group)))
+    dimnames(mm_highcells) <- list(names(group), levels(factor(as.character(group))))
+    mm_highcells <- mm_highcells[colnames(pb),]
+    contrast_highcells <- makeContrasts("B-A", levels = mm_highcells)
+    
+    pb_counts <- assay(pb)
+    mode(pb_counts) <- "integer"
+    dge <- DESeqDataSetFromMatrix(pb_counts, colData = colData(pb), design = mm_highcells)
+    dds <- DESeq(dge)
+    res <- results(dds, contrast = contrast_highcells)
+    deseq_out <- as.data.frame(res@listData, row.names = res@rownames)
+    
+    df <- deseq_out[,c("log2FoldChange","pvalue","padj")]
+    df$gene <- rownames(deseq_out)
+    colnames(df) <- c("logFC","pvalue","padj","gene")
+    return(df)
+  }
+  
+  
+}
+
+```
+
+
+# Run pseudobulk functions.
+```{r}
+library(muscat)
+library(ROTS)
+
+filtered_annotated_seurat = readRDS("rds_objects/filtered_annotated_seurat.rds")
+
+
+DefaultAssay(filtered_annotated_seurat) = "RNA"
+filtered_annotated_seurat = NormalizeData(filtered_annotated_seurat, assay = "RNA")
+filtered_annotated_seurat = ScaleData(filtered_annotated_seurat, assay = "RNA", split.by = "GROUP", vars.to.regress = c("LANE", "AGE"))
+
+Idents(filtered_annotated_seurat) = "GROUP"
+dnmt3a_veh = subset(filtered_annotated_seurat, idents = c("DNMT3A VEH", "none VEH"))
+dnmt3a_stim = subset(filtered_annotated_seurat, idents = c("DNMT3A STIM", "none STIM"))
+tet2_veh = subset(filtered_annotated_seurat, idents = c("TET2 VEH", "none VEH"))
+tet2_stim = subset(filtered_annotated_seurat, idents = c("TET2 STIM", "none STIM"))
+
+run_pseudobulk = function(name, data) {
+  individual = data@meta.data$CHIVEID
+  group = data@meta.data$GROUP
+  raw_data = data@assays$RNA@counts
+  normalized_data = data@assays$RNA@data
+  clustering = data@meta.data$cell_type
+  
+  # Run pseudo-bulk sum aggregation and testing with ROTS for each cluster separately
+  
+  pb_rots_out_list = list()
+  for (cluster_name in names(table(clustering))) {
+    pb_rots_out = RunPseudobulkMethod(raw.data = raw_data[, clustering == cluster_name],
+                                       normalized.data = normalized_data[, clustering == cluster_name],
+                                       individual = individual[clustering == cluster_name],
+                                       group = group[clustering == cluster_name], test = "ROTS", sum.or.mean = "sum")
+    pb_rots_out_list[[cluster_name]] = pb_rots_out
+  }
+  
+  # Get results with FDR <= 0.05 as a separate list
+  
+  pb_rots_signif_list = lapply(pb_rots_out_list, function(x) x[x$padj <= 0.05,])
+  
+  save(pb_rots_out_list, pb_rots_signif_list, file = paste0("tables/pseudobulk/", name, "_results_pseudobulk_ROTS_sum.RData"))
+}
+
+run_pseudobulk("DNMT3A_VEH", dnmt3a_veh)
+run_pseudobulk("DNMT3A_STIM", dnmt3a_stim)
+run_pseudobulk("TET2_VEH", tet2_veh)
+run_pseudobulk("TET2_STIM", tet2_stim)
+
+
+```
+
+
+# Pseudobulk with Sam's code.
+```{r}
+###############################
+# Aggregate Cell groups by individual
+###############################
+Aggregate <- function(seurat_object) {
+    sce <- as.SingleCellExperiment(seurat_object, assay = "RNA") # Convert to SCE
+    sce$random <- sample(1:40, ncol(sce), replace=TRUE)
+    agg.sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("GROUP", "CHIVEID", "random")]) # Aggregate by cluster and sample
+    colData(agg.sce)$GROUP <- as.character(colData(agg.sce)$GROUP) # Change Manual Annotation to character for next step
+    colData(agg.sce)$CHIVEID <- as.character(colData(agg.sce)$CHIVEID) # Change Manual Annotation to character for next step
+    colnames(agg.sce) <- apply(colData(agg.sce)[,c("GROUP", "CHIVEID")], 1, function(x) paste(x, collapse="_")) # Add column names
+    return(agg.sce)
+}
+
+###############################
+# Evaluate Outliers
+###############################
+Outlier_Eval <- function(agg.sce, label1, label2) {
+    agg.sce <- subset(agg.sce, , GROUP %in% c(label1, label2)) # subset on study group of interest
+    agg.sce <- subset(agg.sce, , ncells > 5) # take only clusters with > 5 cells
+    
+    metadata <- colData(agg.sce)[,c("GROUP", "LANE")]
+    metadata$GROUP <- factor(metadata$GROUP)
+    metadata$LANE <- factor(metadata$LANE)
+    
+    if (all(rownames(metadata) != colnames(assay(agg.sce, 'counts')))) {
+        stop("Metadata rownames do not equal assay column names.") # Using stop function
+    }
+    
+    dds <- DESeqDataSetFromMatrix(round(assay(agg.sce, 'counts')), 
+                    colData = metadata, 
+                    design = ~ GROUP)
+    vst_dds <- vst(dds, blind = TRUE)
+    return(vst_dds)
+}
+
+###############################
+# Plot Outliers
+###############################
+Outlier_Plot <- function(agg.sce, vst, label1, label2) {
+    agg.sce <- subset(agg.sce, , GROUP %in% c(label1, label2)) # subset on GROUP of interest
+    agg.sce <- subset(agg.sce, , ncells > 5) # take only clusters with > 5 cells
+    
+    metadata <- colData(agg.sce)[,c("GROUP", "LANE")]
+    metadata$GROUP <- factor(metadata$GROUP)
+    metadata$LANE <- factor(metadata$LANE)
+    
+    vst_mat <- assay(vst)
+    vst_cor <- cor(vst_mat)
+    annotation <- data.frame(metadata[,c("GROUP", "LANE"), drop = F])
+    plot <- pheatmap(vst_cor, annotation_col = annotation)
+    return(plot)
+}
+
+###############################
+# Perform Pseudobulk
+###############################
+Pseudobulk <- function(agg.sce, label1, label2, exclude, shrinkage = T, cell_type) {
+    agg.sce <- subset(agg.sce, , GROUP %in% c(label1, label2)) # subset on GROUP of interest
+    agg.sce <- subset(agg.sce, , ncells > 5) # take only clusters with > 5 cells
+    agg.sce <- subset(agg.sce, , !CHIVEID %in% exclude) # exclude outlier
+    
+    metadata <- colData(agg.sce)[,c("GROUP", "LANE")]
+    metadata$GROUP <- factor(metadata$GROUP, levels = c(label2, label1))
+    metadata$LANE <- factor(metadata$LANE)
+    
+    if (all(rownames(metadata) != colnames(assay(agg.sce, 'counts')))) {
+        stop("Metadata rownames do not equal assay column names.") # Using stop function
+    }
+    
+    dds <- DESeqDataSetFromMatrix(round(assay(agg.sce, 'counts')), 
+                    colData = metadata, 
+                    design = ~ GROUP)
+    
+    keep <- rowSums(counts(dds)) >= 3
+    dds <- dds[keep,]
+    dds <- DESeq(dds)
+    
+    if(shrinkage) {
+        res <- lfcShrink(dds, coef = paste0("GROUP_", gsub(" ", ".", label1), "_vs_", gsub(" ", ".", label2)), type = "apeglm")
+    } else {
+        res <- results(dds, contrast=c("GROUP", label1, label2))
+    }
+
+    summary(res)
+    resOrderedwald <- res[order(res$padj),] # order by pvalue
+    resOrderedwald <- resOrderedwald[!is.na(resOrderedwald$padj),] # Remove NAs
+    resOrderedDFwald <- as.data.frame(resOrderedwald) %>%
+      rownames_to_column("gene")
+    write_tsv(resOrderedDFwald, paste0("tables/meta_pseudobulk/", cell_type, "_", gsub(" ", "_", label1), "_vs_", gsub(" ", "_", label2), ".tsv"))
+    return(resOrderedDFwald)
+}
+
+
+# 3. MONOCYTE PSEUDOBULK_____________________________________________________
+
+#BiocManager::install("apeglm")
+library(scuttle)
+library(DESeq2)
+library(pheatmap)
+library(apeglm)
+
+
+
+# Check for outliers
+# Outlier <- Outlier_Eval(agg_monos, label1 = "TET2 VEH", label2 = "none VEH")
+# DESeq2::plotPCA(Outlier, intgroup = 'GROUP')
+# DESeq2::plotPCA(Outlier, intgroup = 'LANE')
+# 
+# Plot <- Outlier_Plot(agg_monos, vst = Outlier, label1 = "TET2 VEH", label2 = "none VEH")
+
+
+
+run_chip_comparisons = function(cell_type) {
+  cell_type_data <- subset(scaled_filtered_annotated_seurat, idents = cell_type)
+  agg_cell_type_data <- Aggregate(cell_type_data)
+
+  cell_type = gsub(" ", "_", gsub("+", "", cell_type, fixed = TRUE))
+  tet_veh <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "TET2 VEH", label2 = "none VEH", cell_type = cell_type)
+  tet_stim <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "TET2 STIM", label2 = "none STIM", cell_type = cell_type)
+  dnmt3a_veh <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "DNMT3A VEH", label2 = "none VEH", cell_type = cell_type)
+  dnmt3a_stim <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "DNMT3A STIM", label2 = "none STIM", cell_type = cell_type)
+}
+
+
+```
+
+```{r}
+scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
+Idents(scaled_filtered_annotated_seurat) = "cell_type"
+
+cell_types = scaled_filtered_annotated_seurat@meta.data$cell_type %>% unique()
+
+library(future)
+plan(multisession)
+options('future.globals.maxSize' = 46000*1024^2)
+
+
+future(lapply(cell_types, run_chip_comparisons)) 
+# CD16 Monos has an issue with cells having the same variable
+# Dendritic cells also has an issue
+run_chip_comparisons("CD14 Monos")
+run_chip_comparisons("CD16 Monos") # there are no metacells that are non VEH for CD16 Monos
+run_chip_comparisons("CD8+ T cells")
+run_chip_comparisons("CD4+ T cells")
+run_chip_comparisons("B")
+run_chip_comparisons("NK")
+run_chip_comparisons("Erythroid-like cells") # error
+run_chip_comparisons("Platelets") # error
+
+```
+```{r}
+cd14_mono_tet2_veh = read_tsv("tables/meta_pseudobulk/CD14_Monos_TET2_VEH_vs_none_VEH.tsv")
+cd14_mono_dnmt3a_veh = read_tsv("tables/meta_pseudobulk/CD14_Monos_DNMT3A_VEH_vs_none_VEH.tsv")
+```
+
+```{r}
+annotated_seurat = readRDS("rds_objects/final_annotated_object.rds")
+
+Idents(annotated_seurat) = "LANE"
+small_seurat = subset(annotated_seurat, idents = c("7079-1", "7373-2"))
+
+Idents(small_seurat) = "STIM"
+small_seurat = subset(small_seurat, idents = c("VEH"))
+
+Idents(small_seurat) = "cell_type"
+small_seurat = subset(small_seurat, idents = c("CD14 Monos", "B"))
+
+small_seurat$celltype_group = paste(small_seurat$cell_type, small_seurat$GROUP, sep = "_")
+Idents(small_seurat) = "celltype_group"
+prepped_filtered_annotated_seurat = PrepSCTFindMarkers(small_seurat)
+saveRDS(small_seurat, "rds_objects/small_seurat.rds")
+```
+
+
+
+# Save results in excel file.
+```{r}
+# # Compile excel file ------------------------------------------------------
+# 
+# sample_genotypes = c("DNMT3A", "TET2")
+# folder = "tables/supplemental/"
+# 
+# get_cell_data = function(sample_genotype, cell_type) {
+#   input_filename = list.files(folder, pattern = paste0("^", sample_genotype, "_", cell_type, ".*_unstim"))
+#   data = read_csv(paste0(folder, input_filename))
+#   return(data)
+# }
+# 
+# for (sample_genotype in sample_genotypes) {
+#   
+#   nk_data = get_cell_data(sample_genotype, "NK")
+#   cd8_t_cell_data = get_cell_data(sample_genotype, "CD8_T_cell")
+#   cd8_naive_data = get_cell_data(sample_genotype, "CD8_Naive")
+#   cd14_mono_data = get_cell_data(sample_genotype, "CD14_Mono")
+#   cd4_t_cell_data = get_cell_data(sample_genotype, "CD4_T_cell")
+#   cd4_naive_data = get_cell_data(sample_genotype, "CD4_Naive")
+#   cd4_ctl_data = get_cell_data(sample_genotype, "CD4_CTL")
+#   b_data = get_cell_data(sample_genotype, "B")
+#   cd16_mono_data = get_cell_data(sample_genotype, "CD16_Mono")
+#   treg_data = get_cell_data(sample_genotype, "Treg")
+# 
+#   dataframes = list("NK" = nk_data, "CD8_T_cell" = cd8_t_cell_data, "CD8_Naive" = cd8_naive_data,
+#                     "CD14_Mono" = cd14_mono_data, "CD4_T_cell" = cd4_t_cell_data, "CD4_Naive" = cd4_naive_data,
+#                     "CD4_CTL" = cd4_ctl_data,
+#                     "B" = b_data,
+#                     "CD16_Mono" = cd16_mono_data, "Treg" = treg_data,
+#                     "gene_sets" = gene_df)
+#   
+#   filename = paste0(output_dir, sample_genotype, "_unstim_wilcox_diff_exp.xlsx")
+#   write.xlsx(dataframes, file = filename)
+# }
+# 
+# 
+# 
+# 
+# 
+# # Stats for stim vs unstim ------------------------------------------------
+# 
+# 
+# cell_types = c("CD14 Mono", "CD16 Mono", "CD8 T cell", "CD4 T cell")
+# run_stim_stats = function(data) {
+#   for (cell_type in cell_types) {
+# 
+#     case_idents = "STIM"
+#     control_idents = "VEH"
+#     method = "wilcox"
+#     Idents(data) = "celltype.de"
+#     
+#     # Run statistics
+#     response = FindMarkers(data, 
+#                            subset.ident = cell_type,
+#                            group.by = "STIM",
+#                            ident.1 = case_idents,
+#                            ident.2 = control_idents,
+#                            min.pct = 0,
+#                            min.diff.pct = -Inf,
+#                            test.use = method,
+#                            assay = "RNA")
+#       
+#       # Arrange data and remove X chromosome genes
+#       clean_response = response %>%
+#         arrange(p_val_adj) %>%
+#         na.omit() %>%
+#         rownames_to_column("Gene") %>%
+#         filter(!(Gene %in% x_chr_genes$Gene))
+#       
+#       # Save output
+#       filename = paste0(output_dir, "stim_v_unstim_", gsub(" ", "_", cell_type), "_", method, ".csv")
+#       write_csv(clean_response, file = filename)
+#   }
+# }
+# 
+# cell_types = "CD14 Mono"
+# run_stim_stats(singlet_data)
+# 
+# 
+# # Stim vs. unstim stats at patient level -----------------------------------------
+# 
+# run_patient_level_stim_stats = function(data) {
+#   patients = data@meta.data$orig.ident %>% unique()
+#   for (cell_type in cell_types) {
+#       for (patient in patients) {
+#       
+#       # Filter to patient
+#       Idents(data) = "orig.ident"
+#       data_subset = subset(data, idents = patient)
+#       
+#       case_idents = "STIM"
+#       control_idents = "VEH"
+#       method = "wilcox"
+#       Idents(data_subset) = "celltype.de"
+#       
+#       # Run statistics
+#       response = FindMarkers(data_subset, 
+#                              subset.ident = cell_type,
+#                              group.by = "STIM",
+#                              ident.1 = case_idents,
+#                              ident.2 = control_idents,
+#                              min.pct = 0,
+#                              min.diff.pct = -Inf,
+#                              test.use = method,
+#                              assay = "RNA")
+#       # Arrange data and remove X chromosome genes
+#       clean_response = response %>%
+#         arrange(p_val_adj) %>%
+#         na.omit() %>%
+#         rownames_to_column("Gene") %>%
+#         filter(!(Gene %in% x_chr_genes$Gene))
+#       
+#       # Save output
+#       filename = paste0(output_dir, "stim_v_unstim_", gsub(" ", "_", cell_type), "_", patient, "_", method, ".csv")
+#       write_csv(clean_response, file = filename)
+#     }
+#   }
+# }
+# 
+# cell_types = "CD14 Mono"
+# run_patient_level_stim_stats(singlet_data)
+# 
+# # Stats for tet2 vs. dnmt3a stim and unstim ---------------------------------------------------------------
+# 
+# run_tet2_dnmt3a_stats = function(data, stim_status) {
+#   for (cell_type in "CD14 Mono") {
+#     case_idents = "TET2"
+#     control_idents = "DNMT3A"
+#     method = "wilcox"
+#     Idents(data) = "celltype.de"
+#     
+#     # Run statistics
+#     response = FindMarkers(data, 
+#                            subset.ident = cell_type,
+#                            group.by = "MUTATION.GROUP",
+#                            ident.1 = case_idents,
+#                            ident.2 = control_idents,
+#                            min.pct = 0,
+#                            min.diff.pct = -Inf,
+#                            logfc.threshold = -Inf,
+#                            test.use = method,
+#                            assay = "RNA")
+#     
+#     # Arrange data and remove X chromosome genes
+#     clean_response = response %>%
+#       arrange(p_val_adj) %>%
+#       na.omit() %>%
+#       rownames_to_column("Gene") %>%
+#       filter(!(Gene %in% x_chr_genes$Gene))
+#     
+#     # Save output
+#     filename = paste0(output_dir, "CHIP_comparison_", gsub(" ", "_", cell_type), "_", stim_status, "_", method, ".csv")
+#     write_csv(clean_response, file = filename)
+#   }
+# }
+# 
+# future(run_tet2_dnmt3a_stats(veh_data, "unstim"))
+# future(run_tet2_dnmt3a_stats(stim_data, "stim"))
+# 
+
+
+```
+

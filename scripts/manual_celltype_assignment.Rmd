@@ -143,10 +143,12 @@ for(j in unique(sctype_scores$cluster)){
 DimPlot(seurat_df_harmony_keep_0_75, reduction = "umap", label = TRUE, repel = TRUE, group.by = 'customclassif')   
 ```
 
+# Save object.
 ```{r}
 saveRDS(seurat_df_harmony_keep_0_75, "rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")
 ```
 
+# Subcluster unknown clusters and label with scType.
 ```{r, fig1, fig.width=10}
 seurat_df_harmony_keep_0_75 = readRDS("rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")
 
@@ -176,6 +178,7 @@ sum(seurat_df_harmony_keep_0_75@meta.data$customclassif == "Unknown")
 DimPlot(seurat_df_harmony_keep_0_75, reduction = "umap", label = TRUE, repel = TRUE, group.by = "customclassif")  
 ```
 
+# Dig into unknown cluster.
 ```{r}
 unknown_cluster = seurat_df_harmony_keep_0_75@meta.data %>%
   filter(customclassif == "Unknown")
@@ -205,18 +208,21 @@ DimPlot(cluster_5, reduction = "umap", label = TRUE, repel = TRUE, group.by = "s
 seurat_df_harmony_keep_0_75_no_doublets = subset(seurat_df_harmony_keep_0_75, subset = seurat_clusters == 5 & customclassif == "Classical Monocytes", invert = TRUE)
 ```
 
+# Check cell counts.
 ```{r}
 prop.table(table(seurat_df_harmony_keep_0_75_no_doublets@meta.data$customclassif, seurat_df_harmony_keep_0_75_no_doublets@meta.data$GROUP))
 ```
 
+# Save object.
 ```{r}
 library(future)
 options(future.globals.maxSize = 14000*1024^2)
 future(saveRDS(seurat_df_harmony_keep_0_75_no_doublets, "rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds"))
 ```
 
+# Save umap coordinates and cell annotations for each ID.
 ```{r}
-seurat_df_harmony_keep_0_75_no_doublets
+seurat_df_harmony_keep_0_75_no_doublets = readRDS("rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds")
 umap_coordinates = as.data.frame(Embeddings(object = seurat_df_harmony_keep_0_75_no_doublets[["umap"]]))
 
 seurat_df_harmony_keep_0_75_no_doublets_metadata = seurat_df_harmony_keep_0_75_no_doublets@meta.data %>%
@@ -227,7 +233,30 @@ seurat_df_harmony_keep_0_75_no_doublets_metadata = seurat_df_harmony_keep_0_75_n
 write_tsv(seurat_df_harmony_keep_0_75_no_doublets_metadata, "tables/markers/integrated_seurat_metadata.tsv")
 ```
 
+# Transfer files.
 ```{r}
 system("gsutil cp rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/")
 system("gsutil cp tables/markers/integrated_seurat_metadata.tsv gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/tables/markers/")
 ```
+
+# Remove mito and ribo genes and x genes?
+```{r}
+x_chr_genes = read_csv("input_data/x_genes.csv")
+
+filter_mt_rp = function(seu) {
+  DefaultAssay(seu) = "RNA"
+
+  rp_ch = rownames(seu)[grepl("^RPS|^RPL", rownames(seu))]
+  mt_ch = rownames(seu)[grepl("^MT-", rownames(seu))]
+
+  seu = subset(seu, features = setdiff(rownames(seu), rp_ch))
+  seu = subset(seu, features = setdiff(rownames(seu), mt_ch))
+  return(seu)
+}
+
+annotated_seurat = readRDS("rds_objects/final_annotated_object.rds")
+filtered_annotated_seurat = filter_mt_rp(annotated_seurat)
+saveRDS(filtered_annotated_seurat, "rds_objects/filtered_annotated_seurat.rds")
+system("gsutil cp rds_objects/filtered_annotated_seurat.rds gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/")
+```
+
