@@ -1,0 +1,3 @@
+ONTOLOGY	ID	Description	setSize	enrichmentScore	NES	pvalue	p.adjust	qvalue	rank	leading_edge	core_enrichment
+BP	GO:0043435	response to corticotropin-releasing hormone	2	0.9989868287740629	1.4905785066763217	1.0066962746006026e-5	0.03297433647454274	0.03170563424847372	3	tags=100%, list=0%, signal=100%	NR4A2/NR4A1
+BP	GO:0071376	cellular response to corticotropin-releasing hormone stimulus	2	0.9989868287740629	1.4905785066763217	1.0066962746006026e-5	0.03297433647454274	0.03170563424847372	3	tags=100%, list=0%, signal=100%	NR4A2/NR4A1
