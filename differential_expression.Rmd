@@ -11,13 +11,13 @@ library(Seurat)
 library(tidyverse)
 ```
 
-# Install IDEAS package.
+# DIDNT USE. Install IDEAS package.
 ```{r}
 library("devtools");
 install_github("Sun-lab/ideas")
 library(ideas)
 ```
-# Code for IDEAS analysis. 
+# DIDNT USE. Code for IDEAS analysis. 
 ```{r}
 sim_data = readRDS("sim_data_ncase_10_nctrl_10_ncell_120_fold_mean_1.2_var_1.5.rds")
 
@@ -39,10 +39,6 @@ pval_ideas = permanova(dist1, meta_ind, var2test, var2adjust,
 
 ```
 
-```{r, echo=FALSE}
-system("gsutil cp gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/final_annotated_object.rds rds_objects/")
-```
-
 
 ```{r}
 # install glmGamPoi
@@ -56,6 +52,7 @@ devtools::install_github("satijalab/sctransform", ref = "develop")
 filtered_annotated_seurat = readRDS("rds_objects/filtered_annotated_seurat.rds")
 ```
 
+# DIDNT USE.
 ```{r}
 library(glmGamPoi)
 
@@ -73,7 +70,7 @@ f = future({
 
 ```
 
-# Code to run in a WDL.
+# DIDNT USE. Code to run in a WDL.
 ```{r}
 filtered_annotated_seurat = readRDS("filtered_annotated_seurat.rds") # saved in gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/filtered_annotated_seurat.rds
 filtered_annotated_seurat$celltype_group = paste(filtered_annotated_seurat$cell_type, filtered_annotated_seurat$GROUP, sep = "_")
@@ -82,18 +79,7 @@ prepped_filtered_annotated_seurat = PrepSCTFindMarkers(filtered_annotated_seurat
 saveRDS(prepped_filtered_annotated_seurat, "prepped_filtered_annotated_seurat.rds")
 ```
 
-```{r}
-# b.interferon.response <- FindMarkers(immune.combined.sct, assay = "SCT", ident.1 = "B_STIM", ident.2 = "B_CTRL",
-#     verbose = FALSE, test.use = "DESeq2")
-# head(b.interferon.response, n = 15)
-# 
-# # If running on a subset of the original object after running PrepSCTFindMarkers(), FindMarkers() should be invoked with recorrect_umi = FALSE to use the existing corrected counts.
-# immune.combined.sct.subset <- subset(immune.combined.sct, idents = c("B_STIM", "B_CTRL"))
-# b.interferon.response.subset <- FindMarkers(immune.combined.sct.subset, assay = "SCT", ident.1 = "B_STIM",
-#     ident.2 = "B_CTRL", verbose = FALSE, recorrect_umi = FALSE)
-```
-
-
+# DIDNT USE. 
 ```{r}
 
 # Wilcoxon differential expression analysis  -------------------------------
@@ -166,8 +152,8 @@ run_stats(stim_data, "stim")
 
 ```
 
-## Pseudobulk method based on https://github.com/elolab/multisubjectDSanalysis
-# Pseudobulk functions.
+## DIDNT USE. Pseudobulk method based on https://github.com/elolab/multisubjectDSanalysis
+# DIDNT USE. Pseudobulk functions.
 ```{r}
 
 CreatePseudoBulkData <- function(raw.data,normalized.data,sample.id,fun="sum")
@@ -354,7 +340,7 @@ RunPseudobulkMethod <- function(raw.data,normalized.data,individual,group,test="
 ```
 
 
-# Run pseudobulk functions.
+# DIDNT USE. Run pseudobulk functions.
 ```{r}
 library(muscat)
 library(ROTS)
@@ -406,15 +392,15 @@ run_pseudobulk("TET2_STIM", tet2_stim)
 ```
 
 
-# Pseudobulk with Sam's code.
+# USED THIS ONE BUT IN METACELLS2 MARKDOWN. Pseudobulk with Sam's code.
 ```{r}
 ###############################
 # Aggregate Cell groups by individual
 ###############################
 Aggregate <- function(seurat_object) {
     sce <- as.SingleCellExperiment(seurat_object, assay = "RNA") # Convert to SCE
-    sce$random <- sample(1:40, ncol(sce), replace=TRUE)
-    agg.sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("GROUP", "CHIVEID", "random")]) # Aggregate by cluster and sample
+    #sce$random <- sample(1:40, ncol(sce), replace=TRUE)
+    agg.sce <- aggregateAcrossCells(sce, ids = colData(sce)[,c("GROUP", "CHIVEID")])#, "random")]) # Aggregate by cluster and sample
     colData(agg.sce)$GROUP <- as.character(colData(agg.sce)$GROUP) # Change Manual Annotation to character for next step
     colData(agg.sce)$CHIVEID <- as.character(colData(agg.sce)$CHIVEID) # Change Manual Annotation to character for next step
     colnames(agg.sce) <- apply(colData(agg.sce)[,c("GROUP", "CHIVEID")], 1, function(x) paste(x, collapse="_")) # Add column names
@@ -496,7 +482,7 @@ Pseudobulk <- function(agg.sce, label1, label2, exclude, shrinkage = T, cell_typ
     resOrderedwald <- resOrderedwald[!is.na(resOrderedwald$padj),] # Remove NAs
     resOrderedDFwald <- as.data.frame(resOrderedwald) %>%
       rownames_to_column("gene")
-    write_tsv(resOrderedDFwald, paste0("tables/meta_pseudobulk/", cell_type, "_", gsub(" ", "_", label1), "_vs_", gsub(" ", "_", label2), ".tsv"))
+    write_tsv(resOrderedDFwald, paste0("tables/meta_pseudobulk_one_per_patient/", cell_type, "_", gsub(" ", "_", label1), "_vs_", gsub(" ", "_", label2), ".tsv"))
     return(resOrderedDFwald)
 }
 
@@ -579,6 +565,56 @@ small_seurat$celltype_group = paste(small_seurat$cell_type, small_seurat$GROUP, 
 Idents(small_seurat) = "celltype_group"
 prepped_filtered_annotated_seurat = PrepSCTFindMarkers(small_seurat)
 saveRDS(small_seurat, "rds_objects/small_seurat.rds")
+```
+
+# Try DE for subclusters of monocytes
+```{r}
+seurat_df_harmony_keep_0_75 = readRDS("rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")
+
+Idents(seurat_df_harmony_keep_0_75) = "customclassif"
+subclustered_seurat = FindSubCluster(seurat_df_harmony_keep_0_75, cluster = "Classical Monocytes", graph.name = "RNA_snn", resolution = 0.03)
+
+```
+```{r}
+library(scProportionTest)
+
+Idents(subclustered_seurat) = "sub.cluster"
+subclustered_seurat_monocytes = subset(subclustered_seurat, ident = c("Classical Monocytes_0", "Classical Monocytes_1", "Classical Monocytes_2"))
+
+
+prop_test = sc_utils(subclustered_seurat_monocytes)
+prop_test = permutation_test(
+  prop_test, cluster_identity = "sub.cluster",
+  sample_1 = "control", sample_2 = "chip",
+  sample_identity = "CHIP"
+)
+View(prop_test@results$permutation)
+(prop_plot = permutation_plot(prop_test))
+```
+
+```{r}
+cell_type = "Classical Monocytes_2"
+Idents(subclustered_seurat) = "sub.cluster"
+subclustered_seurat_monocytes = subset(subclustered_seurat, ident = cell_type)
+
+agg_cell_type_data <- Aggregate(subclustered_seurat_monocytes)
+  cell_type = gsub(" ", "_", gsub("+", "", cell_type, fixed = TRUE))
+  tet_veh <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "TET2 VEH", label2 = "none VEH", cell_type = cell_type)
+  tet_stim <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "TET2 STIM", label2 = "none STIM", cell_type = cell_type)
+  dnmt3a_veh <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "DNMT3A VEH", label2 = "none VEH", cell_type = cell_type)
+  dnmt3a_stim <- Pseudobulk(agg_cell_type_data, exclude = c(), label1 = "DNMT3A STIM", label2 = "none STIM", cell_type = cell_type)
+```
+# Try Milo.
+```{r}
+BiocManager::install("miloR")
+library(miloR)
+
+Idents(subclustered_seurat) = "customclassif"
+subclustered_seurat_monocytes = subset(subclustered_seurat, ident = "Classical Monocytes")
+pbmc_small_sce <- as.SingleCellExperiment(subclustered_seurat)
+pbmc_small_milo <- Milo(pbmc_small_sce)
+traj_milo <- buildGraph(pbmc_small_milo)
+
 ```
 
 

@@ -1,0 +1,404 @@
+---
+title: "metacell"
+output: html_document
+date: '2023-04-10'
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+#library(metacell)
+library(tidyverse)
+library(Seurat)
+```
+
+
+```{r}
+# load package to save 10X files from Seurat object
+BiocManager::install("DropletUtils")
+library(DropletUtils)
+library(Matrix)
+```
+
+```{r}
+# save files (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files)
+scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
+
+DefaultAssay(scaled_filtered_annotated_seurat) <- "RNA"
+counts = scaled_filtered_annotated_seurat[["RNA"]]@data
+
+scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "GROUP")
+sample.names = unique(scaled_filtered_annotated_seurat$GROUP)
+
+demultiplex_convert_to_10x = function(obj, samples) { 
+        if(!dir.exists(file.path(getwd(), "demultiplexed"))) {
+          dir.create(file.path(getwd(), "demultiplexed"))
+        }
+        for (i in 1:length(samples)) {
+        print(paste0("Converting sample ", samples[i]))
+        obj.sub = obj[[samples[i]]]
+        DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+        }
+}
+
+demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
+
+```
+
+```{r}
+dnmt3a_mutant_seu = readRDS("rds_objects/DNMT3Amutant_seu.rds")
+
+DefaultAssay(dnmt3a_mutant_seu) = "RNA"
+dnmt3a_mutant_seu@meta.data$CLONE = paste0("DNMT3A_", dnmt3a_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", dnmt3a_mutant_seu@meta.data$cell_type))
+
+dnmt3a_mutant_seu.list = Seurat::SplitObject(dnmt3a_mutant_seu, split.by = "CLONE")
+sample.names = unique(dnmt3a_mutant_seu$CLONE)
+
+demultiplex_convert_to_10x(obj = dnmt3a_mutant_seu.list, samples = sample.names)
+
+```
+
+```{r}
+tet2_mutant_seu = readRDS("rds_objects/TET2mutant_seu.rds")
+
+DefaultAssay(tet2_mutant_seu) = "RNA"
+tet2_mutant_seu@meta.data$CLONE = paste0("TET2_", tet2_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", tet2_mutant_seu@meta.data$cell_type))
+
+tet2_mutant_seu.list = Seurat::SplitObject(tet2_mutant_seu, split.by = "CLONE")
+sample.names = unique(tet2_mutant_seu$CLONE)
+
+demultiplex_convert_to_10x(obj = tet2_mutant_seu.list, samples = sample.names)
+
+```
+
+```{r}
+library(GEOquery)
+gunzip("demultiplexed/none VEH/barcodes.tsv.gz")
+gunzip("demultiplexed/none VEH/features.tsv.gz")
+gunzip("demultiplexed/none VEH/matrix.mtx.gz")
+
+```
+
+
+```{r}
+if(!dir.exists("testdb")) dir.create("testdb/")
+scdb_init("testdb/", force_reinit=T)
+mcell_import_scmat_10x("test", base_dir="demultiplexed/none VEH/")
+mat = scdb_mat("test")
+print(dim(mat@mat))
+```
+
+```{r}
+if(!dir.exists("figs")) dir.create("figs/")
+scfigs_init("figs/")
+```
+
+```{r}
+# check umi distribution
+mcell_plot_umis_per_cell("test", bin_for_cutoff = 1)
+```
+
+```{r}
+# identify mitochondrial and IG genes
+mat = scdb_mat("test")
+nms = c(rownames(mat@mat), rownames(mat@ignore_gmat))
+ig_genes = c(grep("^IGJ", nms, v=T), 
+                grep("^IGH",nms,v=T),
+                grep("^IGK", nms, v=T), 
+                grep("^IGL", nms, v=T))
+
+bad_genes = unique(c(grep("^MT-", nms, v=T), grep("^MTMR", nms, v=T), grep("^MTND", nms, v=T),"NEAT1","TMSB4X", "TMSB10", ig_genes))
+
+bad_genes
+```
+
+```{r}
+# ignore genes in list above
+mcell_mat_ignore_genes(new_mat_id="test", mat_id="test", bad_genes, reverse=F) 
+# ignore cells with less than 800 UMI
+mcell_mat_ignore_small_cells("test", "test", 800)
+```
+
+```{r}
+
+mcell_add_gene_stat = function(mat_id, gstat_id, force=F)
+{
+	if(!scdb_is_valid()) {
+		stop("MCERR - scdb is not initialized, cannot import")
+	}
+	if(!force & !is.null(scdb_gstat(gstat_id))) {
+		return(TRUE)
+	}
+	if(is.null(scdb_mat(mat_id))) {
+		stop("cannot gen gstat for non existing mat ", mat_id)
+	}
+	downsample_n = scm_which_downsamp_n(scdb_mat(mat_id))
+	gstat = scm_gene_stat(mat_id,
+								 downsample_n = downsample_n)
+	scdb_add_gstat(gstat_id, gstat)
+}
+
+
+
+scm_gene_stat = function(mat_id,
+                         niche_quantile = 0.2, #TODO: change to 0.1?
+								 downsample_n = NULL,
+								 K_std_n = 1000)
+{
+  old_seed = .set_seed(get_param("mc_rseed"))
+
+#currently converting to non-sparse. Let's see if this need to be optimized
+  scmat = scdb_mat(mat_id)
+  mat =scmat@mat
+  cat("Calculating gene statistics... ")
+
+  if (niche_quantile >1 | niche_quantile < 0 ) {
+    stop("niche_quantile must be between 0 and 1, got ", niche_quantile)
+  }
+
+  # filtering cells with too many or too few umis
+	f_oversize = colSums(mat) > quantile(colSums(mat), 0.95) * 2 |
+							colSums(mat) < 100
+	
+	# returns how many of the gene's umis are found in
+	# X% of the most highly expressing cells. (regularized)
+	quant_mean = function(x, k_reg) {
+		n = length(x);
+		up=sum(tail(sort(x), n=round(n*niche_quantile))); # sum umis in the top 20%
+		return((k_reg+up)/(k_reg+sum(x)));
+	}
+	N = sum(!f_oversize)
+
+	f_g = rowSums(mat) > 10
+
+	downsample_n = scm_which_downsamp_n(scmat)
+
+	message("will downsamp")
+	mat_ds = scm_downsamp(mat, downsample_n)
+	message("done downsamp")
+	mat_ds = mat_ds[f_g,]
+	mat_fg = mat[f_g,]
+
+	message("will gen mat_n")
+	mat_n = rescale_sparse_mat_cols(mat_fg, K_std_n/colSums(mat))
+#	mat_n = t(t(mat_fg)*(K_std_n/colSums(mat)))
+	message("done gen mat_n")
+
+	n_ds = ncol(mat_ds)
+	n = ncol(mat)
+	stat_on_genes = function(i) {
+		g_i = (1+(i-1)*quant):(min(nrow(mat_fg),i*quant))
+		mat_gi = as.matrix(mat_fg[g_i,])
+		mat_ds_gi = as.matrix(mat_ds[g_i,])
+		gstat = data.frame(stringsAsFactors = F,
+	   	name = rownames(mat_gi),
+			tot = rowSums(mat_gi),
+			var = round(matrixStats::rowVars(mat_gi),7),
+			niche_stat =
+		  		apply(mat_gi, 1, quant_mean, k_reg = 10),
+			n_mean = round(matrixStats::rowMeans2(as.matrix(mat_n[g_i,])),7),
+			ds_top1 = matrixStats::rowMaxs(mat_ds_gi) ,
+			ds_top2 = matrixStats::rowOrderStats(mat_ds_gi, which = n_ds-1) ,
+			ds_top3 = matrixStats::rowOrderStats(mat_ds_gi, which = n_ds-2) ,
+			is_on_count = matrixStats::rowCounts(mat_ds_gi > 0),
+			ds_is_on_count = matrixStats::rowCounts(mat_ds_gi > 0),
+			ds_var = round(matrixStats::rowVars(mat_ds_gi),7),
+			ds_mean = round(matrixStats::rowMeans2(mat_ds_gi),7))
+		return(gstat)
+	}
+	max_bin = tgconfig::get_param("mc_cores", package = "metacell")
+	doMC::registerDoMC(max_bin)
+	quant = ceiling(nrow(mat_fg)/max_bin)
+
+	res <- plyr::alply(1:max_bin, 1, stat_on_genes, .parallel=TRUE)
+	gene_stat = do.call(rbind, res)
+	message("done computing basic gstat, will compute trends")
+
+	if(ncol(mat) > 50000) {
+		subs = sample(1:ncol(mat),50000)
+		ctot = colSums(mat[,subs])
+		gene_stat$sz_cor = round(apply(mat_fg[,subs], 1, function(x) { cor(x, ctot) }),3)
+
+	} else {
+		ctot = colSums(mat)
+		gene_stat$sz_cor = round(apply(mat_fg, 1, function(x) { cor(x, ctot) }),3)
+	}
+
+	tot_ord = order(gene_stat$tot)
+	cor_sz_ord = gene_stat$sz_cor[tot_ord]
+	cmin = median(cor_sz_ord[1:101])
+	cmax = median(cor_sz_ord[(length(cor_sz_ord)-101):length(cor_sz_ord)])
+	sz_cor_trend = zoo::rollmedian(cor_sz_ord, 101, fill=c(cmin, NA, cmax))
+
+	gene_stat$sz_cor_norm[tot_ord] =
+		gene_stat$sz_cor[tot_ord] - sz_cor_trend
+
+	# niche_stat =  how many of the genen's umis are found in
+	# 20% of the most highly expressing cells. (regularized)
+	niche_sz_ord = gene_stat$niche_stat[tot_ord]
+	cmin = median(niche_sz_ord[1:101])
+	cmax = median(niche_sz_ord[(length(niche_sz_ord)-101):length(niche_sz_ord)])
+	niche_trend = zoo::rollmedian(niche_sz_ord, 101, fill=c(cmin, NA, cmax))
+
+	gene_stat$niche_norm[tot_ord] =
+		gene_stat$niche_stat[tot_ord] - niche_trend
+
+	# var/mean
+	ds_ord = order(gene_stat$ds_mean)
+
+#	gene_stat$ds_log_varmean = ifelse(gene_stat$ds_mean>0.01, log2((0.001+gene_stat$ds_var)/(gene_stat$ds_mean+0.001)), 0)
+	m_reg = 10/N
+	gene_stat$ds_log_varmean = log2((m_reg+gene_stat$ds_var)/(m_reg+gene_stat$ds_mean))
+	vm_sz_ord = gene_stat$ds_log_varmean[ds_ord]
+	cmin = median(vm_sz_ord[1:101])
+	cmax = median(vm_sz_ord[(length(vm_sz_ord)-101):length(vm_sz_ord)])
+	vm_trend = zoo::rollmedian(vm_sz_ord, 101, fill=c(cmin, NA, cmax))
+
+	gene_stat$ds_vm_norm[ds_ord] =
+		gene_stat$ds_log_varmean[ds_ord] - vm_trend
+
+	gene_stat$downsample_n = downsample_n
+
+	# currently not used
+	# gene_stat$max_ratio = gene_stat$max_pk/gene_stat$mean_pk
+	# gene_stat$var_meanpk = gene_stat$var/gene_stat$mean_pk
+	# gene_stat$ds_var_meanpk = gene_stat$ds_var/gene_stat$mean_pk
+
+	rownames(gene_stat) = gene_stat$name
+
+	gene_stat = gene_stat[,c("name","tot","var","is_on_count", "sz_cor","sz_cor_norm",
+	                      "niche_stat",  "niche_norm", "n_mean",
+	                      "ds_top1", "ds_top2", "ds_top3",
+	                      "ds_mean", "ds_var", "ds_log_varmean","ds_vm_norm", "ds_is_on_count", "downsample_n")]
+
+	.restore_seed(old_seed)
+	cat("..done\n")
+
+	return(gene_stat)
+}
+
+umis = mat
+n = downsample_n
+
+scm_downsamp = function(umis, n)
+{
+	old_seed = .set_seed(get_param("mc_rseed"))
+	
+	umis = umis[,colSums(umis)>= n]
+	m = nrow(umis)
+	.downsamp_one=function(v,n, replace = F){
+	  filled_data = rep(1:length(v),times=v)
+	  if (length(filled_data) > n) {
+		  a = tabulate(sample(filled_data,replace=replace,size=n),nbins=m) # ERROR - sometimes downsample_n is larger than the number of samples in this list and this command is therefore uncompletable
+		  return(a)
+	  } else {
+	    return(rep(NA,times=m))
+	  }
+	}
+	max_bin = tgconfig::get_param("mc_cores", package = "metacell")
+	doMC::registerDoMC(max_bin)
+
+	max_bin = min(max_bin, ceiling(ncol(umis)/500))
+
+	if(max_bin*10000 < ncol(umis)) {
+		max_bin =  round(ncol(umis))/10000
+	}
+	cell_quant = ceiling(ncol(umis)/max_bin)
+	seed = 19
+	sub_dsamp = function(x) {
+		set.seed(seed)
+		i = 1+(x-1)*cell_quant
+		j = min(x*cell_quant, ncol(umis))
+	   ret = Matrix(apply(umis[,i:j], 2, .downsamp_one, n))
+	   rownames(ret) = rownames(umis)
+		return(as(ret,"dgCMatrix"))
+	}
+	res <- plyr::alply(1:max_bin, 1, sub_dsamp, .parallel=TRUE)
+	umis_ds = do.call(cbind, res)
+
+	.restore_seed(old_seed)
+
+	return(umis_ds)
+}
+
+scm_which_downsamp_n = function(scmat)
+{
+	downsample_n = tgconfig::get_param("scm_n_downsamp_gstat", package = "metacell")
+	if(is.null(downsample_n)) {
+   	downsample_n = min(round(quantile(colSums(scmat@mat), 0.5)),
+                  max(750, round(quantile(colSums(scmat@mat), 0.01))))
+   	print("reached!")
+  	}
+	return(downsample_n)
+}
+
+
+```
+
+
+```{r}
+# select feature genes
+
+mcell_add_gene_stat(gstat_id="test", mat_id="test", force=T)
+
+mcell_gset_filter_varmean(gset_id="test_feats", gstat_id="test", T_vm=0.08, force_new=T)
+mcell_gset_filter_cov(gset_id = "test_feats", gstat_id="test", T_tot=100, T_top3=2)
+```
+
+```{r}
+# build the balanced cell graph
+mcell_add_cgraph_from_mat_bknn(mat_id="test", 
+                gset_id = "test_feats", 
+                graph_id="test_graph",
+                K=100,
+                dsamp=T)
+```
+
+```{r}
+# resample and generate co-clustering graph
+mcell_coclust_from_graph_resamp(
+                coc_id="test_coc500", 
+                graph_id="test_graph",
+                min_mc_size=20, 
+                p_resamp=0.75, n_resamp=500)
+```
+
+```{r}
+mcell_mc_from_coclust_balanced(
+                coc_id="test_coc500", 
+                mat_id= "test",
+                mc_id= "test_mc", 
+                K=30, min_mc_size=30, alpha=2)
+```
+
+```{r}
+# remove outlier cells
+mcell_plot_outlier_heatmap(mc_id="test_mc", mat_id = "test", T_lfc=3)
+
+mcell_mc_split_filt(new_mc_id="test_mc_f", 
+            mc_id="test_mc", 
+            mat_id="test",
+            T_lfc=3, plot_mats=F)
+```
+
+```{r}
+# select markers and color metacells
+mcell_gset_from_mc_markers(gset_id="test_markers", mc_id="test_mc_f")
+marks_colors = read.table(system.file("extdata", "pbmc_mc_colorize.txt", package="metacell"), sep="\t", h=T, stringsAsFactors=F)
+mc_colorize("test_mc_f", marker_colors=marks_colors)
+```
+
+```{r}
+# create heatmap of metacells and genes
+mcell_mc_plot_marks(mc_id="test_mc_f", gset_id="test_markers", mat_id="test")
+```
+
+```{r}
+# project metacells in 2d
+mcell_mc2d_force_knn(mc2d_id="test_2dproj",mc_id="test_mc_f", graph_id="test_graph")
+
+tgconfig::set_param("mcell_mc2d_height",1000, "metacell")
+tgconfig::set_param("mcell_mc2d_width",1000, "metacell")
+mcell_mc2d_plot(mc2d_id="test_2dproj")
+```
+

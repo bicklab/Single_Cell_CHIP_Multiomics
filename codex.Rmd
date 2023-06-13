@@ -185,6 +185,10 @@ saveRDS(codex_obj_2, "rds_objects/codex/codex_obj_2.rds")
 ```
 
 ```{r}
+codex_obj = readRDS("rds_objects/codex/codex_obj.rds")
+```
+
+```{r}
 for(obj in c(codex_obj, codex_obj_2)) {
   cropped_coords = Crop(obj[["fov"]], x = c(4750, 6000), y = c(3250, 4000), coords = "plot")
   obj[["zoom"]] = cropped_coords
@@ -234,7 +238,7 @@ codex_obj[["zoom"]] = cropped_coords
 cropped_coords = Crop(codex_obj[["fov"]], x = c(7000, 7500), y = c(2750, 3250), coords = "plot")
 codex_obj[["zoom"]] = cropped_coords
 
-(p3 = ImageDimPlot(codex_obj, fov = "zoom", cols = "parade", coord.fixed = FALSE) +
+(p3 = ImageDimPlot(codex_obj, fov = "zoom", cols = "parade", coord.fixed = FALSE, alpha = 0.5) +
   theme(legend.text = element_text(size = 25),
         legend.title = element_blank()))
 
