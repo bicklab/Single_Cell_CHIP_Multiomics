@@ -1,0 +1,71 @@
+---
+title: "metacell"
+output: html_document
+date: '2023-04-10'
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(tidyverse)
+library(Seurat)
+```
+
+
+```{r}
+# load package to save 10X files from Seurat object
+BiocManager::install("DropletUtils")
+library(DropletUtils)
+library(Matrix)
+```
+
+```{r}
+# save files (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files)
+scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
+
+DefaultAssay(scaled_filtered_annotated_seurat) <- "RNA"
+counts = scaled_filtered_annotated_seurat[["RNA"]]@data
+
+scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "GROUP")
+sample.names = unique(scaled_filtered_annotated_seurat$GROUP)
+
+demultiplex_convert_to_10x = function(obj, samples) { 
+        if(!dir.exists(file.path(getwd(), "demultiplexed"))) {
+          dir.create(file.path(getwd(), "demultiplexed"))
+        }
+        for (i in 1:length(samples)) {
+        print(paste0("Converting sample ", samples[i]))
+        obj.sub = obj[[samples[i]]]
+        DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+        }
+}
+
+demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
+
+```
+# We attempted metacells2 for mutated/wt cells but there were not enough cells to have power for comparison.
+```{r}
+dnmt3a_mutant_seu = readRDS("rds_objects/DNMT3Amutant_seu.rds")
+
+DefaultAssay(dnmt3a_mutant_seu) = "RNA"
+dnmt3a_mutant_seu@meta.data$CLONE = paste0("DNMT3A_", dnmt3a_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", dnmt3a_mutant_seu@meta.data$cell_type))
+
+dnmt3a_mutant_seu.list = Seurat::SplitObject(dnmt3a_mutant_seu, split.by = "CLONE")
+sample.names = unique(dnmt3a_mutant_seu$CLONE)
+
+demultiplex_convert_to_10x(obj = dnmt3a_mutant_seu.list, samples = sample.names)
+
+```
+
+```{r}
+tet2_mutant_seu = readRDS("rds_objects/TET2mutant_seu.rds")
+
+DefaultAssay(tet2_mutant_seu) = "RNA"
+tet2_mutant_seu@meta.data$CLONE = paste0("TET2_", tet2_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", tet2_mutant_seu@meta.data$cell_type))
+
+tet2_mutant_seu.list = Seurat::SplitObject(tet2_mutant_seu, split.by = "CLONE")
+sample.names = unique(tet2_mutant_seu$CLONE)
+
+demultiplex_convert_to_10x(obj = tet2_mutant_seu.list, samples = sample.names)
+
+```

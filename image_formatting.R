@@ -149,7 +149,4 @@ format_volcano_3 = list(
   scale_color_manual(values = colors_3)
 )
 
-# Dotplot -----------------------------------------------------------------
-dot_colors = brewer.pal(4, "Paired")
-names(dot_colors) = c("Inflammation", "Antigen presentation", "Cell adhesion", "Monocyte activation")
 

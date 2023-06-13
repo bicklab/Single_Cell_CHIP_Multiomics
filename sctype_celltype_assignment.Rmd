@@ -38,62 +38,6 @@ DimPlot(seurat_df_harmony_keep_0_25, reduction = "harmony", label = TRUE)
 
 ```
 
-# DIDNT USE. Evaluate markers manually.
-```{r}
-seurat_df_harmony_keep_0_75 = readRDS("rds_objects/seurat_df_harmony_keep_0_75.rds")
-seurat_df_harmony_keep_0_75_markers = read_tsv("tables/markers/seurat_df_harmony_keep_0_75.tsv")
-
-DimPlot(seurat_df_harmony_keep_0_75, reduction = "umap", label = TRUE)
-seurat_df_harmony_keep_0_75@meta.data$celltype = as.character(seurat_df_harmony_keep_0_75@meta.data$seurat_clusters)
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(1, 6, 7, 10, 11, 26, 32, 39)] = "CD14_Mono"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(49)] = "CD16_Mono"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(2, 8, 12, 13, 16, 20, 25, 28, 30, 36, 38, 43, 44, 45, 46, 51)] = "CD4_T"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(0, 3, 9, 14, 17, 19, 23, 24, 33, 34, 40, 54)] = "CD8_T"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(4, 22, 50, 56)] = "B"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(52)] = "Platelet"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(58, 59)] = "DC"
-seurat_df_harmony_keep_0_75@meta.data$celltype[seurat_df_harmony_keep_0_75@meta.data$seurat_clusters %in% c(35, 41, 15, 18, 31, 37, 47, 53)] = "NK"
-
-
-Idents(seurat_df_harmony_keep_0_75) = "celltype"
-DimPlot(seurat_df_harmony_keep_0_75, reduction = "umap", label = TRUE)
-
-top_10 = seurat_df_harmony_keep_0_75_markers %>%
-    group_by(cluster) %>%
-    top_n(n = 10, wt = avg_log2FC)
-
-View(top_10 %>% select(cluster, gene))
-
-cell_annotation_reference = readxl::read_excel("tables/markers/cell_annotation_reference.xlsx") %>%
-  #head(7) %>%
-  mutate(Markers = strsplit(Markers, ", ")) %>% 
-  unnest(Markers) %>%
-  select(Label, Markers) %>%
-  unique()
-
-harmonized_cell_annotation_map = left_join(top_10, cell_annotation_reference, by = c("gene" = "Markers")) %>%
-  select(cluster, gene, Label) %>%
-  unique()
-
-harmonized_cell_annotation_table = table(harmonized_cell_annotation_map$cluster, harmonized_cell_annotation_map$Label) %>% 
-  as.data.frame() %>%
-  pivot_wider(names_from = Var2, values_from = Freq)
-
-harmonized_cell_annotation_table[harmonized_cell_annotation_table == 0] = NA
-```
-
-# DIDNT USE. Compare to Azimuth.
-```{r}
-remotes::install_github('satijalab/azimuth', ref = 'master')
-library(Azimuth)
-seurat_df_harmony_keep_0_75 = RunAzimuth(seurat_df_harmony_keep_0_75, reference = "pbmcref")
- 
-write_tsv(seurat_df_harmony_keep_0_75@meta.data, "tables/markers/metadata_with_azimuth.tsv")
-View(seurat_df_harmony_keep_0_75@meta.data)
-
-table(seurat_df_harmony_keep_0_75@meta.data$celltype, seurat_df_harmony_keep_0_75@meta.data$predicted.celltype.l3)
-```
-
 
 # Try scType.
 ```{r}
@@ -204,10 +148,6 @@ DimPlot(cluster_5, reduction = "umap", label = TRUE, repel = TRUE, group.by = "s
 seurat_df_harmony_keep_0_75_no_doublets = subset(seurat_df_harmony_keep_0_75, subset = seurat_clusters == 5 & customclassif == "Classical Monocytes", invert = TRUE)
 ```
 
-# Check cell counts.
-```{r}
-prop.table(table(seurat_df_harmony_keep_0_75_no_doublets@meta.data$customclassif, seurat_df_harmony_keep_0_75_no_doublets@meta.data$GROUP))
-```
 
 # Save object.
 ```{r}
@@ -227,11 +167,6 @@ seurat_df_harmony_keep_0_75_no_doublets_metadata = seurat_df_harmony_keep_0_75_n
 write_tsv(seurat_df_harmony_keep_0_75_no_doublets_metadata, "tables/markers/integrated_seurat_metadata.tsv")
 ```
 
-# Transfer files.
-```{r}
-system("gsutil cp rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/rds_objects/")
-system("gsutil cp tables/markers/integrated_seurat_metadata.tsv gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/tables/markers/")
-```
 
 # Remove mito and ribo genes.
 ```{r}
