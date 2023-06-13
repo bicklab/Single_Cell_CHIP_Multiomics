@@ -35,6 +35,19 @@ system("gsutil cp gs://fc-secure-084dba6b-e7ee-4ebc-9fad-59c87bc8d1cc/Maester_da
 system("gsutil ls gs://fc-secure-0a0db300-cd6b-49a0-a17e-633b998bfc65/CH_Multiomics/Code_folder/")
 system("gsutil cp -r tables gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/")
 
+# clean out current tables folder and replace with cloud tables folder
+system("gsutil rm -r gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/tables")
+system("gsutil cp -r tables gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/")
+
+system("gsutil rm -r gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/figures")
+system("gsutil cp -r figures gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/")
+
+system("gsutil rm -r gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/scripts")
+system("gsutil cp -r scripts gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/Single_Cell_CHIP/")
+
+
+system("gsutil rm -r gs://fc-112f611a-aca5-42eb-9970-5050086b3e8d/Single_Cell_CHIP/qc_filtered")
+
 
 # Transfer specific folders  ----------------------------------------------
 
