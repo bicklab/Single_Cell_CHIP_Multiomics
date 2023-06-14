@@ -35,7 +35,7 @@ format_no_axes = list(scale_color_gradient(low = "#f0f0f0", high = brewer.pal(3,
 format_no_axes_faceted = list(
   theme_bw(),
   guides(color = "none"),
-  scale_color_manual(values = brewer.pal(3, "Paired")),
+  scale_color_manual(values = brewer.pal(8, "Paired")[c(2,6,4)]),
   theme(
     strip.text = element_text(size = rel(1.2)),
     strip.background = element_rect(fill = "white", colour = "white", size = 0.5),

@@ -9,8 +9,6 @@ knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(Seurat)
 library(tidyverse)
-library(ggradar)
-
 
 output_dir = "figures/"
 
@@ -25,12 +23,13 @@ diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type 
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "B"] = "B cells"
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "NK"] = "NK cells"
+
+diet_seurat_trimmed@meta.data$MUTATION.GROUP[diet_seurat_trimmed@meta.data$MUTATION.GROUP == "none"] = "Control"
+
 ```
 
 # Plot UMAP.
 ```{r}
-diet_seurat_trimmed@meta.data$MUTATION.GROUP = factor(diet_seurat_trimmed@meta.data$MUTATION.GROUP, levels = c("TET2", "DNMT3A", "none"))
-
 control_count = 0
 dnmt3a_count = 0
 tet2_count = 0
@@ -115,8 +114,7 @@ summarize_data = function(data, grouping_category) {
 summary_stats = summarize_data(diet_seurat_trimmed, "MUTATION.GROUP")
 
 radar_stats = summary_stats %>%
-  dplyr::mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("Control", "none", "TET2", "DNMT3A")))
-radar_stats$MUTATION.GROUP[radar_stats$MUTATION.GROUP == "none"] = "Control"
+  dplyr::mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("Control", "TET2", "DNMT3A")))
 
 (radar_plot = ggradar(radar_stats, 
                 values.radar = c(0, 0.2, 0.5),
@@ -136,6 +134,7 @@ write_tsv(radar_stats, "tables/radar_all_data.tsv")
 
 ```
 
+# Plot mutant radar.
 ```{r}
 system("gsutil cp 'gs://fc-secure-0a0db300-cd6b-49a0-a17e-633b998bfc65/CH_Multiomics/seurat_objects/seurat_with_clones_5.11.23.rds' rds_objects/")
 
@@ -150,7 +149,6 @@ clone_data_for_radar = clone_data@meta.data %>%
   filter(!(MUTATION.GROUP %in% c("TET2", "DNMT3A") & is.na(Clone))) %>%
   dplyr::select(cell_type, MUTATION.GROUP, Clone)
 
-clone_data_for_radar$MUTATION.GROUP[clone_data_for_radar$MUTATION.GROUP == "none"] = "Control"
 clone_data_for_radar$Clone[is.na(clone_data_for_radar$Clone)] = "Control"
 
 tet2_for_radar = clone_data_for_radar %>% filter(MUTATION.GROUP %in% c("TET2", "Control"))
@@ -282,8 +280,8 @@ save_plot(feature_plot, filename, height = 8, width = 8, png = TRUE)
 ```{r}
 Idents(diet_seurat_trimmed) = "MUTATION.GROUP"
 
-tet2_diet_seurat_trimmed = subset(diet_seurat_trimmed, ident = c("TET2", "none"))
-dnmt3a_diet_seurat_trimmed = subset(diet_seurat_trimmed, ident = c("DNMT3A", "none"))
+tet2_diet_seurat_trimmed = subset(diet_seurat_trimmed, ident = c("TET2", "Control"))
+dnmt3a_diet_seurat_trimmed = subset(diet_seurat_trimmed, ident = c("DNMT3A", "Control"))
 
 
 Idents(tet2_diet_seurat_trimmed) = "STIM"
@@ -300,7 +298,6 @@ Idents(tet2_diet_seurat_trimmed_stim) = "cell_type"
 Idents(dnmt3a_diet_seurat_trimmed_stim) = "cell_type"
 
 make_vln_plot = function(data, gene, cell_type, sample_genotype) {
-  data@meta.data$MUTATION.GROUP[data@meta.data$MUTATION.GROUP == "none"] = "Control"
   data@meta.data$MUTATION.GROUP = factor(data@meta.data$MUTATION.GROUP, levels = c("Control", "TET2", "DNMT3A"))
   vln_plot = VlnPlot(data, features = gene, idents = cell_type, group.by = "MUTATION.GROUP", cols = c(brewer.pal(12, "Paired")[2], ifelse(sample_genotype == "TET2", brewer.pal(12, "Paired")[4], brewer.pal(12, "Paired")[6]))) + theme(axis.text.x = element_text(angle = 0, hjust = 0.5), axis.title.x = element_blank())
   save_plot(vln_plot, paste0("figures/violins/", sample_genotype, "_", gsub("\\+", "", gsub(" ", "_", cell_type)), "_", gene, "_violin"), height = 3, width = 4)
@@ -312,25 +309,26 @@ make_vln_plot(dnmt3a_diet_seurat_trimmed_veh, "IFITM2", "CD14+ Monocytes", "DNMT
 make_vln_plot(dnmt3a_diet_seurat_trimmed_veh, "PTGER4", "CD14+ Monocytes", "DNMT3A")
 make_vln_plot(dnmt3a_diet_seurat_trimmed_veh, "ADGRE5", "CD14+ Monocytes", "DNMT3A")
 
-VlnPlot(tet2_diet_seurat_trimmed_veh, features = "FN1", idents = "CD14+ Monocytes", group.by = "MUTATION.GROUP", cols = brewer.pal(12, "Paired")[c(4,2)])
-VlnPlot(tet2_diet_seurat_trimmed_veh, features = "LDHB", idents = "CD14+ Monocytes", group.by = "MUTATION.GROUP", cols = brewer.pal(12, "Paired")[c(4,2)])
+make_vln_plot(tet2_diet_seurat_trimmed_stim, "SAMD9", "CD14+ Monocytes", "TET2")
+make_vln_plot(tet2_diet_seurat_trimmed_stim, "EMP1", "CD14+ Monocytes", "TET2")
+make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "SAMD9", "CD14+ Monocytes", "DNMT3A")
+make_vln_plot(tet2_diet_seurat_trimmed_stim, "NRG1", "CD14+ Monocytes", "TET2")
+make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "NRG1", "CD14+ Monocytes", "DNMT3A")
+make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "EMP1", "CD14+ Monocytes", "DNMT3A")
 
-VlnPlot(dnmt3a_diet_seurat_trimmed_veh, features = "IFITM2", idents = "CD14+ Monocytes", group.by = "MUTATION.GROUP", cols = brewer.pal(12, "Paired")[c(6,2)])
-VlnPlot(dnmt3a_diet_seurat_trimmed_veh, features = "PTGER4", idents = "CD14+ Monocytes", group.by = "MUTATION.GROUP", cols = brewer.pal(12, "Paired")[c(6,2)])
-VlnPlot(dnmt3a_diet_seurat_trimmed_veh, features = "ADGRE5", idents = "CD14+ Monocytes", group.by = "MUTATION.GROUP", cols = brewer.pal(12, "Paired")[c(6,2)])
 
 ```
 
 # Plot violin have patient stim/unstim side by side.
 ```{r}
 Idents(diet_seurat_trimmed) = "vaf_identifier"
-stim_matched_subset = subset(diet_seurat_trimmed, idents = c("TET2 3: 0.062", "TET2 5: 0.3", "TET2 6: 0.33", "TET2 8: 0.51", "DNMT3A 4: 0.08", "DNMT3A 7: 0.13", "DNMT3A 9: 0.24", "none 2", "none 3", "none 4", "none 5", "none 7"))
+stim_matched_subset = subset(diet_seurat_trimmed, idents = c("TET2 3: 0.062", "TET2 5: 0.3", "TET2 6: 0.33", "TET2 8: 0.51", "DNMT3A 4: 0.08", "DNMT3A 7: 0.13", "DNMT3A 9: 0.24", "Control 2", "Control 3", "Control 4", "Control 5", "Control 7"))
 Idents(stim_matched_subset) = "cell_type"
 
 
-(cxcl8_plot = VlnPlot(stim_matched_subset, features = c("CXCL8"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]))
-(il1b_plot = VlnPlot(stim_matched_subset, features = c("IL1B"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]))
-(ptgs2_plot = VlnPlot(stim_matched_subset, features = c("PTGS2"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]))
+(cxcl8_plot = VlnPlot(stim_matched_subset, features = c("CXCL8"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
+(il1b_plot = VlnPlot(stim_matched_subset, features = c("IL1B"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
+(ptgs2_plot = VlnPlot(stim_matched_subset, features = c("PTGS2"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
 
 save_plot(cxcl8_plot, "figures/violins/stim_cd14_monos_cxcl8_violin", width = 6)
 save_plot(il1b_plot, "figures/violins/stim_cd14_monos_il1b_violin", width = 6)
@@ -339,56 +337,9 @@ save_plot(ptgs2_plot, "figures/violins/stim_cd14_monos_ptgs2_violin", width = 6)
 ```
 
 
-
-# Plot violin by VAF.
-```{r}
-# # this section relies on changes to diet_seurat_trimmed@meta.data made in the umap section
-# View(diet_seurat_trimmed@meta.data)
-# diet_seurat_trimmed_stim = subset(diet_seurat_trimmed, subset = STIM == "STIM")
-# diet_seurat_trimmed_veh = subset(diet_seurat_trimmed, subset = STIM == "VEH")
-# 
-# Idents(diet_seurat_trimmed_stim) = "cell_type"
-# plot_violin = function(data, gene, cell_type = "CD14 Monos") {
-#   Idents(data) = "cell_type"
-#   data@meta.data$vaf_identifier = factor(data@meta.data$vaf_identifier, levels = c("none 1", "none 2", "none 3", "none 4", "none 5", "none 6", "none 7",
-#                                                                                    "DNMT3A 1: 0.04", "DNMT3A 2: 0.05", "DNMT3A 3: 0.07", "DNMT3A 4: 0.08",
-#                                                                                    "DNMT3A 5: 0.091", "DNMT3A 6: 0.098", "DNMT3A 7: 0.13", "DNMT3A 8: 0.2", 
-#                                                                                    "DNMT3A 9: 0.24", "TET2 1: 0.02", "TET2 2: 0.02", "TET2 3: 0.062", 
-#                                                                                    "TET2 4: 0.23", "TET2 5: 0.3", "TET2 6: 0.33", "TET2 7: 0.42", "TET2 8: 0.51"))
-#   VlnPlot(data, features = gene, idents = cell_type, group.by = "vaf_identifier", split.by = "VAF", pt.size = 0, cols = c(grDevices::colorRampPalette(c("white", brewer.pal(3, "Paired")[2]))(17)), assay = "RNA", slot = "counts")
-#     
-# }
-# 
-# plot_violin(diet_seurat_trimmed_veh, "IL1B")
-# plot_violin(diet_seurat_trimmed_stim, "IL1B")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "CXCL3")
-# plot_violin(diet_seurat_trimmed_stim, "CXCL3")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "LGALS3")
-# plot_violin(diet_seurat_trimmed_stim, "LGALS3")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "NEAT1")
-# plot_violin(diet_seurat_trimmed_stim, "NEAT1")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "SOD2")
-# plot_violin(diet_seurat_trimmed_stim, "SOD2")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "VIM")
-# plot_violin(diet_seurat_trimmed_stim, "VIM")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "HLA-DRA")
-# plot_violin(diet_seurat_trimmed_stim, "HLA-DRA")
-# 
-# plot_violin(diet_seurat_trimmed_veh, "OLR1")
-# plot_violin(diet_seurat_trimmed_stim, "OLR1")
-# 
-
-
-```
-
 # Density plot.
 ```{r}
+diet_seurat_trimmed@meta.data$MUTATION.GROUP = factor(diet_seurat_trimmed@meta.data$MUTATION.GROUP, levels = c("Control", "TET2", "DNMT3A"))
 
 (overlaid_plot = ggplot(diet_seurat_trimmed@meta.data, aes(x = UMAP_1, y = UMAP_2)) +
    geom_point(fill = "#bdbdbd", color = "white", size = 1, shape = 21, stroke = 0.05) +
@@ -504,7 +455,7 @@ library(UpSetR)
       main.bar.color = brewer.pal(5, "Paired"), mainbar.y.label = element_blank(), mainbar.y.max = 11, sets.x.label = element_blank()))
 
 filename = paste0(output_dir, "upset_mutations")
-pdf(file = paste0(filename, ".pdf"), width = 8, height = 4)
+pdf(file = paste0(filename, ".pdf"), width = 8, height = 2)
 print(upset_plot)
 write = dev.off()
 
@@ -547,7 +498,7 @@ full_data = as.data.frame(full_data) %>%
     scale_fill_manual(values = c("#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0", "#ffffff", "#f0f0f0")) +
   facet_grid(~Entry, scales = "free"))
 filename = paste0(output_dir, "dot_vafs")
-save_plot(dot_vafs, filename, height = 3)
+save_plot(dot_vafs, filename, height = 3, width = 2)
 write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
 
 ```
@@ -557,12 +508,11 @@ write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
 library(MuDataSeurat)
 
 tet2_stim = ReadH5AD("h5ad_files/tet2_stim_for_seurat.h5ad")
-
 tet2_stim_labels = read_csv("metacells/tet2_stim_metacells.csv")
 
 
 relevant_metadata = diet_seurat_trimmed@meta.data %>%
-  select(cell_ID, cell_type, GROUP) %>%
+  dplyr::select(cell_ID, cell_type, GROUP) %>%
   inner_join(tet2_stim_labels, by = c(cell_ID = "...1")) %>%
   filter(metacell != -1)
 
@@ -582,42 +532,16 @@ tet2_stim@meta.data$metacell = rownames(tet2_stim@meta.data) %>% as.numeric()
 tet2_stim@meta.data = tet2_stim@meta.data %>%
   inner_join(celltypes_for_metacells)
 
-ggplot(tet2_stim@meta.data, aes(x = umap_x, y = umap_y, color = cell_type)) +
+(metacells_plot = ggplot(tet2_stim@meta.data, aes(x = umap_x, y = umap_y, color = cell_type)) +
   geom_point() +
   theme_bw() +
   scale_color_manual(values = brewer.pal(6, "Paired")) +
-  ggtitle("TET2 STIM")
+  ggtitle("TET2 +IL6 Metacells") +
+  labs(color = "Cell type"))
 
+save_plot(metacells_plot, "figures/metacells_plot", width = 6)
 ```
-# Make feature plots.
-```{r}
-seurat_df_harmony_keep_0_75_annotated = readRDS("rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")
 
-table(seurat_df_harmony_keep_0_75_annotated@meta.data$cell_type)
-features = c("IL7R", "LYZ", "CD14", "MS4A1", "CD8A", "GNLY", "NKG7", "CST3", "PPBP", "CD3E")
-plots = FeaturePlot(subset(seurat_df_harmony_keep_0_75_annotated, subset = CHIVEID == "CH-21-034"), features = features, combine = FALSE)
-plots
-
-plots_2 = FeaturePlot(subset(seurat_df_harmony_keep_0_75_annotated, subset = CHIVEID == "CH-21-033"), features = features, combine = FALSE)
-plots_2
-
-FeaturePlot(subset(seurat_df_harmony_keep_0_75_annotated, subset = CHIVEID == "CH-21-033"), features = c("CD3E"), combine = FALSE)
-FeaturePlot(subset(seurat_df_harmony_keep_0_75_annotated, subset = CHIVEID == "CH-21-033"), features = c("CD14", "CD3E"), combine = FALSE, blend = TRUE)
-
-for (i in 1:length(plots)) {
-  if (i != 6) {
-    plots[[i]] = plots[[i]] + NoLegend() + format_no_axes
-  } else {
-    plots[[i]] = plots[[i]] + format_no_axes
-  }
-}
-
-cd3e_exp = FetchData(seurat_df_harmony_keep_0_75_annotated)
-
-feature_plot = cowplot::plot_grid(plotlist = plots)
-filename = paste0(output_dir, "feature_canonical")
-save_plot(feature_plot, filename, height = 8, width = 8, png = TRUE)
-```
 ```{r}
 diet_seurat = readRDS("rds_objects/diet_seurat.rds")
 seurat_df_harmony_keep_0_75_annotated = readRDS("rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")

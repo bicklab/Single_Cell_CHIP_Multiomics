@@ -1,0 +1,48 @@
+---
+title: "Additional calculations for manuscript"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(tidyverse)
+library(Seurat)
+```
+
+# Number of control cells
+```{r}
+diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
+
+summarize_data = function(data, grouping_category) {
+  ignore_cells = c()
+  summary_stats = data@meta.data %>%
+    dplyr::group_by(across(all_of(grouping_category)), cell_type) %>%
+    dplyr::summarize(count = dplyr::n()) %>%
+    dplyr::mutate(cell_type = factor(cell_type, levels = c("CD4+ T cells", "CD8+ T cells", "CD14+ Monocytes", "NK cells", "B cells", "CD16+ Monocytes", "Dendritic cells",  "Erythroid-like cells", "Platelets"))) %>%
+    dplyr::arrange(cell_type) %>%
+    na.omit() %>%
+    tidyr::pivot_wider(names_from = cell_type, values_from = count)
+  return(summary_stats)
+}
+
+summarized_data = summarize_data(diet_seurat_trimmed, "MUTATION.GROUP")
+rowSums(summarized_data[,2:6])
+```
+
+# Number of mutated cells and nonmutated cells
+```{r}
+clone_data = readRDS("rds_objects/seurat_with_clones_5.11.23.rds")
+
+clone_data@meta.data$cell_type[clone_data@meta.data$cell_type == "CD14 Monos"] = "CD14+ Monocytes"
+clone_data@meta.data$cell_type[clone_data@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
+clone_data@meta.data$cell_type[clone_data@meta.data$cell_type == "B"] = "B cells"
+clone_data@meta.data$cell_type[clone_data@meta.data$cell_type == "NK"] = "NK cells"
+
+clone_data_for_radar = clone_data@meta.data %>%
+  filter(!(MUTATION.GROUP %in% c("TET2", "DNMT3A") & is.na(Clone))) %>%
+  dplyr::select(cell_type, MUTATION.GROUP, Clone) %>%
+  group_by(MUTATION.GROUP, Clone) %>%
+  summarise(count = n())
+
+```

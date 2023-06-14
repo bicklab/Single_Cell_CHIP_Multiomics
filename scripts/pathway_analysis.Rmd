@@ -19,7 +19,6 @@ output_dir_all = "figures/pathway_analysis_all/"
 
 organism = "org.Hs.eg.db"
 library(organism, character.only = TRUE)
-library(clusterProfiler)
 
 find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = TRUE) {
   cell_type_name = gsub(" ", "_", gsub("+", "", cell_type, fixed = TRUE))
@@ -61,7 +60,7 @@ find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = T
     
     colors = ifelse(sample_genotype == "TET2", format_colors_desc_tet2, format_colors_desc_dnmt3a)
     
-    title = paste(stim_status, sample_genotype, cell_type_for_title)
+    title = paste0(sample_genotype, " ", cell_type_for_title, ifelse(stim_status == "STIM", " +IL6", ""))
     split_plot = dotplot(gse, showCategory = 5, split = ".sign") +
         colors + 
         ggtitle(title) +
@@ -105,9 +104,6 @@ find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = T
   })
 }
 
-sample_genotypes = c("DNMT3A", "TET2")
-diet_seurat = readRDS("rds_objects/diet_seurat.rds")
-cell_types = diet_seurat@meta.data$cell_type %>% unique()
 
 ```
 
@@ -118,8 +114,8 @@ find_pathways("DNMT3A", "CD14 Monos", stim_status = "VEH")
 find_pathways("TET2", "CD4+ T cells", stim_status = "VEH")
 find_pathways("DNMT3A", "CD4+ T cells", stim_status = "VEH")
 
-find_pathways("DNMT3A", "CD14 Monos", stim_status = "VEH")
-find_pathways("DNMT3A", "CD14 Monos", stim_status = "VEH")
+find_pathways("TET2", "CD14 Monos", stim_status = "STIM")
+find_pathways("DNMT3A", "CD14 Monos", stim_status = "STIM")
 
 ```
 
@@ -127,21 +123,18 @@ find_pathways("DNMT3A", "CD14 Monos", stim_status = "VEH")
 ```{r}
 library(future)
 plan(multisession)
+
+
+sample_genotypes = c("DNMT3A", "TET2")
+diet_seurat = readRDS("rds_objects/diet_seurat.rds")
+cell_types = diet_seurat@meta.data$cell_type %>% unique()
+
 for (sample_genotype in sample_genotypes) {
   for (cell_type in cell_types) {
     future(find_pathways(sample_genotype, cell_type, stim_status = "VEH"))
     future(find_pathways(sample_genotype, cell_type, stim_status = "STIM"))
   }
 }
-```
-
-
-```{r}
-input_filename = "CD14_Monos_DNMT3A_Mutant_vs_Wildtype.tsv"
-title = "DNMT3A CD14 Monos Mutant/Wildtype"
-
-input_filename = "CD14_Monos_TET2_Mutant_vs_Wildtype.tsv"
-title = "TET2 CD14 Monos Mutant/Wildtype"
 ```
 
 # Make upset plot with enriched pathways (split by genotype).
@@ -243,7 +236,7 @@ plot_volcano = function(sample_genotype, cell_type, stim_status) {
     xlim(-5,5) +
     ylim(0,40) +
     scale_color_manual(values = c(rev(brewer.pal(12, "Paired")[c(1:4)])[c(1:length(highlight_labels))], "lightgrey")) + #changed to 5:12 for 2
-    ggtitle(paste(stim_status, sample_genotype, cell_type_for_title)) +
+    ggtitle(paste0(sample_genotype, " ", cell_type_for_title, ifelse(stim_status == "STIM", " +IL6", ""))) +
    #  # negative labels
    #  geom_label_repel(data = exp_data %>% arrange(desc(-log10(padj))) %>% filter(log2FoldChange < -1) %>% head(10), aes(label = gene), , size = 3,
    #                   fill = NA, direction = "y", max.overlaps =  Inf, nudge_x = 0.05, segment.alpha = 0.25, force_pull = 0, xlim = c(-4.5,-3.5), ylim = c(15,40),
@@ -303,18 +296,6 @@ make_solo_plots("B")
 
 ```
 
-```{r}
-get_color = function(description) { 
-  switch(description,
-       "B signal" = "green",
-       "inflammatory response" = "white",
-       "ER" = "red")
-}
-
-get_color("inflammatory response")
-```
-
-
 # Mutant vs wildtype
 ```{r}
  tet2_mutant_de = read_csv("tables/mutant_wt_de_MAST/fcHurdle_all_samples_TET2_mutant_vs_wt_unstim.csv")
@@ -362,7 +343,7 @@ tet2_gene_list = tet2_mutant_de %>%
 # identify enriched pathways
 tet2_gse = gseGO(geneList = tet2_gene_list, keyType = "SYMBOL", OrgDb = organism, ont = "ALL", minGSSize = 50, maxGSSize = 800, pvalueCutoff = 0.05, nPermSimple = 10000)
 
-title = paste("VEH", "TET2", "Monocytes")
+title = paste("TET2", "CD14+ Monocytes")
 (tet2_mut_plot = dotplot(tet2_gse) +
     scale_color_gradient(low = brewer.pal(4, "Paired")[4], high = brewer.pal(3, "Paired")[3]) + 
     ggtitle(title))
@@ -381,7 +362,7 @@ dnmt3a_gene_list = dnmt3a_mutant_de %>%
 # identify enriched pathways
 dnmt3a_gse = gseGO(geneList = dnmt3a_gene_list, keyType = "SYMBOL", OrgDb = organism, ont = "ALL", minGSSize = 50, maxGSSize = 800, pvalueCutoff = 0.05, nPermSimple = 10000)
 
-title = paste("VEH", "DNMT3A", "Monocytes")
+title = paste("DNMT3A", "CD14+ Monocytes")
 (dnmt3a_mut_plot = dotplot(dnmt3a_gse) +
     scale_color_gradient(low = brewer.pal(6, "Paired")[6], high = brewer.pal(6, "Paired")[5]) + 
     ggtitle(title))
