@@ -326,9 +326,9 @@ stim_matched_subset = subset(diet_seurat_trimmed, idents = c("TET2 3: 0.062", "T
 Idents(stim_matched_subset) = "cell_type"
 
 
-(cxcl8_plot = VlnPlot(stim_matched_subset, features = c("CXCL8"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
-(il1b_plot = VlnPlot(stim_matched_subset, features = c("IL1B"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
-(ptgs2_plot = VlnPlot(stim_matched_subset, features = c("PTGS2"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)]) + theme(axis.title.x = element_blank()))
+(cxcl8_plot = VlnPlot(stim_matched_subset, features = c("CXCL8"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)], pt.size = 0) + theme(axis.title.x = element_blank()))
+(il1b_plot = VlnPlot(stim_matched_subset, features = c("IL1B"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)], pt.size = 0) + theme(axis.title.x = element_blank()))
+(ptgs2_plot = VlnPlot(stim_matched_subset, features = c("PTGS2"), idents = "CD14+ Monocytes", group.by = "vaf_identifier", split.by = "STIM", cols = brewer.pal(8, "Paired")[c(8,7)], pt.size = 0) + theme(axis.title.x = element_blank()))
 
 save_plot(cxcl8_plot, "figures/violins/stim_cd14_monos_cxcl8_violin", width = 6)
 save_plot(il1b_plot, "figures/violins/stim_cd14_monos_il1b_violin", width = 6)
@@ -507,39 +507,48 @@ write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
 ```{r}
 library(MuDataSeurat)
 
-tet2_stim = ReadH5AD("h5ad_files/tet2_stim_for_seurat.h5ad")
-tet2_stim_labels = read_csv("metacells/tet2_stim_metacells.csv")
+make_metacells_fig = function(path_to_data, path_to_labels, title, output_path) {
+  data = ReadH5AD(path_to_data)
+  data_labels = read_csv(path_to_labels)
+
+  relevant_metadata = diet_seurat_trimmed@meta.data %>%
+    rownames_to_column("cell_ID") %>%
+    dplyr::select(cell_ID, cell_type, GROUP) %>%
+    inner_join(data_labels, by = c(cell_ID = "...1")) %>%
+    filter(metacell != -1)
+  
+  
+  relevant_metadata_summarised = relevant_metadata %>%
+    group_by(cell_type, GROUP, metacell) %>%
+    summarize(count = n())
+  
+  
+  celltypes_for_metacells = relevant_metadata_summarised %>%
+    group_by(GROUP, metacell) %>%
+    mutate(proportion = count / sum(count)) %>%
+    dplyr::slice(which.max(proportion)) %>%
+    filter(proportion >= 0.8)
+  
+  data@meta.data$metacell = rownames(data@meta.data) %>% as.numeric()
+  data@meta.data = data@meta.data %>%
+    inner_join(celltypes_for_metacells)
+  
+  (metacells_plot = ggplot(data@meta.data, aes(x = umap_x, y = umap_y, color = cell_type)) +
+    geom_point() +
+    theme_bw() +
+    scale_color_manual(values = brewer.pal(8, "Paired")) +
+    ggtitle(title) +
+    labs(color = "Cell type"))
+  
+  save_plot(metacells_plot, output_path, width = 6)
+}
 
 
-relevant_metadata = diet_seurat_trimmed@meta.data %>%
-  dplyr::select(cell_ID, cell_type, GROUP) %>%
-  inner_join(tet2_stim_labels, by = c(cell_ID = "...1")) %>%
-  filter(metacell != -1)
+make_metacells_fig(path_to_data = "h5ad_files/tet2_stim_for_seurat.h5ad", path_to_labels = "metacells/tet2_stim_metacells.csv", title = "TET2 +IL6 Metacells", output_path = "figures/metacells/tet2_stim_metacells")
+make_metacells_fig(path_to_data = "h5ad_files/tet2_veh_for_seurat.h5ad", path_to_labels = "metacells/tet2_veh_metacells.csv", title = "TET2 Metacells", output_path = "figures/metacells/tet2_veh_metacells")
+make_metacells_fig(path_to_data = "h5ad_files/dnmt3a_veh_for_seurat.h5ad", path_to_labels = "metacells/dnmt3a_veh_metacells.csv", title = "DNMT3A Metacells", output_path = "figures/metacells/dnmt3a_veh_metacells")
+make_metacells_fig(path_to_data = "h5ad_files/none_veh_for_seurat.h5ad", path_to_labels = "metacells/none_veh_metacells.csv", title = "Control Metacells", output_path = "figures/metacells/control_veh_metacells")
 
-
-relevant_metadata_summarised = relevant_metadata %>%
-  group_by(cell_type, GROUP, metacell) %>%
-  summarize(count = n())
-
-
-celltypes_for_metacells = relevant_metadata_summarised %>%
-  group_by(GROUP, metacell) %>%
-  mutate(proportion = count / sum(count)) %>%
-  dplyr::slice(which.max(proportion)) %>%
-  filter(proportion >= 0.8)
-
-tet2_stim@meta.data$metacell = rownames(tet2_stim@meta.data) %>% as.numeric()
-tet2_stim@meta.data = tet2_stim@meta.data %>%
-  inner_join(celltypes_for_metacells)
-
-(metacells_plot = ggplot(tet2_stim@meta.data, aes(x = umap_x, y = umap_y, color = cell_type)) +
-  geom_point() +
-  theme_bw() +
-  scale_color_manual(values = brewer.pal(6, "Paired")) +
-  ggtitle("TET2 +IL6 Metacells") +
-  labs(color = "Cell type"))
-
-save_plot(metacells_plot, "figures/metacells_plot", width = 6)
 ```
 
 ```{r}
