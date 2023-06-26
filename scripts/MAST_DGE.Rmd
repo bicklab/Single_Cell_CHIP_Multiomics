@@ -1,0 +1,153 @@
+---
+title: "Mutant_WT_Comparisons"
+author: "Pawan Bhat"
+date: "2023-06-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## MAST Package
+
+We use the MAST R package (v.1.24.1) to calculate differentially expressed genes (DEGs) between mutant and wildtype cells. The annotations in our Seurat object are derived from our mitochondrial lineage tracing strategy. 
+
+MAST: a flexible statistical framework for assessing transcriptional changes and characterizing heterogeneity in single-cell RNA sequencing data G Finak, A McDavid, M Yajima, J Deng, V Gersuk, AK Shalek, CK Slichter et al Genome biology 16 (1), 278
+
+https://github.com/RGLab/MAST
+
+```{r }
+library(MAST)
+library(SingleCellExperiment)
+library(Seurat)
+library(SeuratObject)
+library(ggplot2)
+library(ggrepel)
+
+```
+
+## Subsetting object by condition
+
+We first subset the Seurat object for our conditions of interest.
+
+x = processed Seurat object
+STIM = boolean for STIM condition
+cell_type = cell population of interest (i.e., "CD14 Monos")
+CHIP_genotype = genotype condition ("DNMT3A" or "TET2"), NULL will consider all CHIP genotypes
+
+```{r, echo=FALSE}
+data = readRDS('path/to/rdsfile')
+subset_sample = function(x, STIM, cell_type, CHIP_Genotype){
+  
+    
+  message(paste0("Subsetting seurat object for STIM condition ", STIM, " ,population ", cell_type, " ,CHIP Genotype", CHIP_genotype))
+    
+  #subset by Stim condition
+  if (STIM == T){  
+    Idents(x) = "STIM"
+    x = subset(x, idents = "STIM")
+  }else{
+    Idents(x) = "STIM"
+    x = subset(x, idents = "VEH")}
+  
+  
+  #Subset by cell population
+  x$cell_type = gsub(" ","_",x$cell_type)
+  Idents(x) = cell_type 
+  x = subset(x, idents = cell_type)
+  
+  #Subset by CHIP genotype 
+  if (is.null(CHIP_Genotype)){
+    Idents(x) = "CHIP"
+    x = subset(x, idents = CHIP)
+  }else{
+    Idents(x) = MUTATION.GROUP 
+    x = subset(x, idents = CHIP_Genotype)
+  }
+  
+  #clean idents
+  x$Clone[is.na(x$Clone)] <- "NA"
+  Idents(x) = "Clone"
+  data.subset = subset(x, idents = "NA", invert = T)
+  
+  return(data.subset)
+}
+
+```
+
+## Genotype comparisons
+We perform MAST using the cellular detection rate as our covariate: (https://www.bioconductor.org/packages/release/bioc/vignettes/MAST/inst/doc/MAITAnalysis.html)
+
+x = subsetted Seurat object
+baseline = baseline factored level ("Wildtype")
+do_LRT = treatment condition for likelihood ratio test ("conditionMutant")
+sample_comparison = comparison name ("mutant_vs_wt_monocytes")
+
+```{r, echo=FALSE}
+MAST_DE = function(x, baseline = baseline, do_LRT = do_LRT, sample_comparison, file_path){
+  
+  DefaultAssay(x) = "SCT"
+  sca = as.SingleCellExperiment(x, assay = "SCT")
+  
+  #Calculate cellular detection rate
+  cdr2 <-colSums(assay(sca)>0)
+  colData(sca)$cngeneson <- scale(cdr2)
+  
+  #factor levels, define contrasts, run linear model and lrt 
+  cond<-factor(colData(sca)$CHIP)
+  cond<-relevel(cond, baseline)
+  colData(sca)$condition<-cond
+  sca_1 = SceToSingleCellAssay(sca, check_sanity = F)
+  zlmCond <- zlm(~condition + cngeneson, sca_1)
+  summaryCond <- summary(zlmCond, doLRT= do_LRT) 
+  
+  #organize results
+  summaryDt <- summaryCond$datatable
+  fcHurdle <- merge(summaryDt[contrast==do_LRT & component=='H',.(primerid, `Pr(>Chisq)`)], #hurdle P values
+                    summaryDt[contrast==do_LRT & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid') #logFC coefficients
+  fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
+  fcHurdleSig <- merge(fcHurdle[fdr<.05 & abs(coef)>0.25], as.data.table(mcols(sca_1)), by='primerid')
+  
+  fcHurdle$label = fcHurdle$primerid %in% fcHurdleSig$primerid
+  volcano <- data.frame(logFC=fcHurdle$coef, FDR=-log10(fcHurdle$fdr), gene = fcHurdle$primerid, label = fcHurdle$label)
+  
+  #visualization
+  ggplot(volcano, aes(x=logFC, y=FDR)) + geom_point(aes(color=FDR), alpha=0.5) +
+    scale_color_gradient(low="black", high="red") + theme_bw() + ggtitle(paste0(do_LRT,"_vs_","Wildtype")) +
+    xlab("log2 fold change") + ylab("-log10(FDR)") +
+    geom_vline(xintercept=c(-0.25,0.25), linetype="dashed", color="blue") +
+    geom_hline(yintercept=-log10(0.05), linetype="dashed", color="red") +
+    geom_label_repel(aes(x=logFC,y=FDR,label= ifelse(label == T, as.character(gene),"")), position = position_dodge(1))+
+    labs(caption = paste("Number of genes w/ FDR < .05 , |log2FC| > 0.25 = ", length(fcHurdleSig$primerid)))
+  
+  #write results
+  write.csv(volcano, paste0(file_path, sample_comparison,".csv"))
+}
+
+```
+
+## Per sample comparison
+The mitochondrial annotations enables us to compare mutant and wildtype cells within the same patient(CHIVE_ID).
+We use the following function to calculate DEGs per sample.
+
+x = subsetted Seurat object
+baseline = baseline factored level ("Wildtype")
+do_LRT = treatment condition for likelihood ratio test ("conditionMutant")
+
+```{r, echo=FALSE}
+Sample_MAST = function(x = x, baseline = baseline, do_LRT = do_LRT, file_path){
+        CHIVE_ID_list = rownames(table(x$CHIVEID, x$Clone))
+          
+        for (CHIVE in CHIVE_ID_list){
+              Idents(x) = "CHIVEID"
+              CHIVE_obj = subset(x, idents = CHIVE)
+              message(paste0("Performing MAST DGE for sample ", CHIVE))
+              
+              MAST_DE(x = CHIVE_obj, baseline = baseline, do_LRT = do_LRT, sample_comparison = CHIVE, 
+                      file_path = file_path)
+          }
+}
+
+```
+
