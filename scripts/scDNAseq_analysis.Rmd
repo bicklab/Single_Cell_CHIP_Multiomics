@@ -1,0 +1,320 @@
+---
+title: "scDNAseq_analysis"
+author: "Pawan Bhat"
+date: "2023-06-26"
+output: html_document
+---
+##Setup
+
+The following code utilizes the Mosaic v2.4.1 analysis toolkit to analyze h5 files processed via the MissionBio Tapestri pipeline. We have closely followed their recommendations for our analysis at https://missionbio.github.io/mosaic/. Since some of our visualizations were performed with R packages, we use reticulate to interface with the Mosaic package.
+
+```{r setup, include=FALSE}
+library(reticulate)
+library(knitr)
+knitr::knit_engines$set(python = reticulate::eng_python)
+env_path = 'path_to_conda_env'
+use_condaenv(env_path)
+```
+
+## Import python packages
+```{python}
+import missionbio.mosaic as ms
+from IPython.display import display, HTML
+import plotly.graph_objects as go
+import numpy as np
+import pandas as pd
+
+# Import additional packages for specific visuals
+import missionbio.mosaic.utils as mutils
+import matplotlib.pyplot as plt
+
+# Import the colors
+from missionbio.mosaic.constants import COLORS
+import seaborn as sns
+
+```
+
+##TET2 sample analysis
+The following workflow can be repeated for the DNMT3A sample (see annotations at end of document)
+```{python}
+h5path = 'path_to_h5'
+
+sample = ms.load(h5path, whitelist = (['chr4:106157967:C/CA','chrM:7755:G/C']))
+
+#Filter DNA variants
+dna_vars = sample.dna.filter_variants(
+    min_dp=10,
+    min_gq=30,
+    vaf_ref=5,
+    vaf_hom=95,
+    vaf_het=35,
+    min_prct_cells=30,
+    min_mut_prct_cells=0.5,
+)
+
+final_vars = ['chr4:106157967:C/CA','chrM:7755:G/C']
+sample.dna = sample.dna[sample.dna.barcodes(), final_vars]
+sample.dna.shape
+
+#Fetch annotations
+annotation = sample.dna.get_annotations()  
+# Store the annotations in the dna assay as a new column attribute
+for col, content in annotation.items():
+    sample.dna.add_col_attr(col, content.values)
+ann = annotation.sort_values(by=["DANN", "Coding impact"], ascending=False)
+sample.dna.col_attrs.keys()
+
+# Add annotation to the id names
+sample.dna.set_ids_from_cols(["Gene", "CHROM", "POS", "REF", "ALT"])
+
+# Annotations are now added to the variants
+sample.dna.ids()
+
+#Cluster DNA variants
+clone_data = sample.dna.group_by_genotype(features=sample.dna.ids(), group_missing=True, min_clone_size=0.25,
+    layer="NGT_FILTERED",
+    show_plot=False)
+display(HTML(clone_data.to_html()))
+
+sample.dna.add_row_attr("clustering-1", sample.dna.get_labels())
+
+fig = sample.dna.heatmap(attribute='NGT_FILTERED')
+
+#Annotate DNA variants
+sample.dna.rename_labels(
+  {
+    "1": "WT",
+    "2": "TET2+Mito",
+    "3": "TET2+Mito",
+    "4": "TET2+Mito",
+    "5": "TET2+Mito",
+    "6": "Mito only",
+    "7": "FP",
+    "missing": "FP",
+    "small": "FP",
+  }
+)
+
+#Exclude minor/missing clones
+if "FP" in sample.dna.get_labels():
+    fp_barcodes = sample.dna.barcodes({"FP"})
+    sample.dna = sample.dna.drop(fp_barcodes) 
+else:
+    sample.dna = sample.dna
+
+set(sample.dna.get_labels()) 
+
+fig = sample.dna.heatmap(attribute='NGT_FILTERED')
+
+
+#Intersect protein assay barcodes on filtered DNA assay
+x = sample.protein.barcodes()
+y = sample.dna.barcodes()
+
+z = np.intersect1d(x, y)
+len(z)
+
+sample.protein = sample.protein[z,sample.protein.ids()]
+sample.dna = sample.dna[z,sample.dna.ids()] 
+
+sample2 = sample[:]
+
+#sub-assays
+sample2.dna = sample.dna
+sample2.protein = sample.protein
+
+print(sample2.dna.shape,
+sample2.cnv.shape,
+sample2.protein.shape)
+
+
+#Cluster by protein expression
+sample2.protein.normalize_reads('CLR')
+sample2.protein.run_pca(attribute='normalized_counts', components=10,show_plot= False, random_state = 100)
+sample2.protein.run_umap(attribute='pca', random_state=100)
+sample2.protein.cluster(attribute='umap', method='graph-community',k=100, random_state=100) 
+
+sample2.protein = sample2.protein.drop(['CD10','CD117', 'CD123', 'CD138','CD141', 'CD163','CD1c', 'CD22', 'CD25', 'CD30', 'CD303', 'CD304', 'CD5', 'CD71', 'CD83', 'CD90', 'CD19','IgG2a','IgG2b','IgG1', 'CD34','CD69','CD62L','CD49d' ,'CD2','CD7', 'CD62P'])
+
+fig = sample2.protein.heatmap(attribute='normalized_counts')
+
+#Annotate clusters
+sample2.protein.rename_labels(
+    {
+        '1': 'CD8+ T cells', 
+        '2': 'CD14+ Monocytes', 
+        '3': 'Activated CD4+ T cells',
+        '4': 'CD4+ T cells',
+        '5': 'CD14+ Monocytes', 
+        '6': "delete", 
+        '7': 'CD14+ Monocytes',
+        '8': 'NK cells',
+        '9': 'CD14+ Monocytes'
+       
+    }
+)
+
+#Exclude noisy clusters/bad staining
+fp_barcodes2 = sample2.protein.barcodes("delete")
+sample2.protein = sample2.protein.drop(fp_barcodes2)
+
+set(sample2.protein.get_labels())
+sample2.protein.shape
+
+fig = sample2.protein.heatmap(attribute='normalized_counts')
+
+
+#intersect filtered DNA/protein once more
+x = sample2.protein.barcodes()
+y = sample2.dna.barcodes()
+
+z = np.intersect1d(x, y)
+len(z)
+
+sample2.protein = sample2.protein[z,sample2.protein.ids()]
+sample2.dna = sample2.dna[z,sample2.dna.ids()] 
+
+sample3 = sample2[:]
+
+#sub-assays
+sample3.dna = sample2.dna
+sample3.protein = sample2.protein
+
+print(sample3.dna.shape,
+sample3.cnv.shape,
+sample3.protein.shape)
+
+#Plot multiassay heatmap
+fig = sample3.heatmap(
+    clusterby=['dna','protein'],
+    attributes=("AF_MISSING","CLR"),
+    order = ('dna','protein')
+    )
+  
+
+
+#Extract metadata for visualization in R
+counts = sample3.protein.get_attribute(attribute='normalized_counts')
+pca = sample3.protein.get_attribute(attribute='normalized_counts')
+umap = sample3.protein.get_attribute(attribute='umap')
+protein_label = sample3.protein.get_attribute(attribute ='label')
+dna_label = sample3.dna.get_attribute('label')
+VAF = sample3.dna.get_attribute('AF')
+
+
+
+```
+
+
+#Plotting
+Here, we plot summary UMAPS and pie charts
+```{r, echo=FALSE}
+library(ggplot2)
+library(SingleCellExperiment)
+library(Seurat)
+library(ggpubr)
+library(scater)
+library(cowplot)
+library(RColorBrewer)
+
+
+
+#Create SCE object from extracted mosaic object values
+coldata= cbind(py$protein_label, py$dna_label, py$VAF, py$umap)
+
+colnames(coldata) = c("clusters", "clone", 'VAF_CHIP','VAF_mito','umap_1','umap_2')
+
+sce <- SingleCellExperiment(assays = list(counts = t(py$counts)), colData= coldata, reducedDims = list(py$umap,py$pca))
+reducedDimNames(sce) <- c('umap','pca')
+
+#UMAP of cell populations
+u1 <- ggplot(coldata, aes(x = umap_1, y = umap_2, color = clusters)) +
+  geom_point()+
+  scale_color_manual(values = c("#1F78B4","#33A02C","#FB9A99", '#6A3D9A')) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank())+
+  ggtitle(label ="Clusters")+
+ theme(plot.title = element_text(size = 10))
+u1
+
+#UMAP of clones
+u2 <- ggplot(coldata, aes(x = umap_1, y = umap_2, color = clone)) +
+  geom_point()+
+  scale_color_manual(values =c('#1F78B4', '#E31A1C', '#808080','#000000')) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank())+
+ggtitle(label = "Clonality")+
+  theme(plot.title = element_text(size = 10))
+u2
+
+#Pie charts
+counts = as.data.frame(table(coldata$clone,coldata$clusters))
+
+#Filter counts on variant annotation ("Mito", "WT", etc.)
+counts_filtering <- function(x){counts %>% filter(!Var1 == x)}
+counts = counts_filtering("Mito")
+
+
+p1 =  ggplot(counts, aes(x="", y=Freq, fill=Var2)) +
+             scale_fill_manual(values = c("#1F78B4","#33A02C","#FB9A99", '#6A3D9A'))+
+                  ggtitle("TET2+Mito Proportions") +
+            theme(plot.title = element_text(size = 10),
+                panel.grid = element_blank(),
+                axis.line = element_blank(),
+                axis.text = element_blank(),
+                axis.title = element_blank()) +
+            geom_bar(stat="identity", width=1) +
+            coord_polar("y", start=0)
+p1
+
+#Check counts for each cluster
+table(sce$clone)
+
+```
+
+#DNMT3A filtering, DNA and Protein annotations
+```{python}
+
+#whitelist for variants
+final_vars = ["chr2:25470560:C/T", "chrM:749:A/G"]
+
+#DNA filtering
+dna_vars = sample.dna.filter_variants(
+    min_dp=4,
+    min_gq=30,
+    vaf_ref=5,
+    vaf_hom=95,
+    vaf_het=35,
+    min_prct_cells=10,
+    min_mut_prct_cells=0.5)
+
+#Annotating variants
+sample.dna.rename_labels(
+  {
+    "1": "WT",
+    "2": "DNMT3A",
+    "3": "DNMT3A+Mito",
+    "4": 'DNMT3A',
+    "missing": "FP",
+    "small": "FP",
+  }
+)
+
+#Annotating clusters  
+sample2.protein.rename_labels(
+  {
+    '1': 'NK cells', 
+    '2': 'Macrophages', 
+    '3': 'CD8+ T cells',
+    '4': "CD4+ T cells",
+    '5': 'Early Monocytes',
+    '6': 'delete'
+  }
+)
+```
