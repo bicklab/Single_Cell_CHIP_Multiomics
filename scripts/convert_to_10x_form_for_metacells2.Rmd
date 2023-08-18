@@ -26,23 +26,64 @@ scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotate
 DefaultAssay(scaled_filtered_annotated_seurat) <- "RNA"
 counts = scaled_filtered_annotated_seurat[["RNA"]]@data
 
+demultiplex_convert_to_10x = function(obj, samples) { 
+    if(!dir.exists(file.path(getwd(), "demultiplexed"))) {
+      dir.create(file.path(getwd(), "demultiplexed"))
+    }
+    for (i in 1:length(samples)) {
+      print(paste0("Converting sample ", samples[i]))
+      obj.sub = obj[[samples[i]]]
+      DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+      }
+}
+
+
+
+```
+
+
+# Split and save by CHIP/control.
+```{r}
+
 scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "GROUP")
 sample.names = unique(scaled_filtered_annotated_seurat$GROUP)
-
-demultiplex_convert_to_10x = function(obj, samples) { 
-        if(!dir.exists(file.path(getwd(), "demultiplexed"))) {
-          dir.create(file.path(getwd(), "demultiplexed"))
-        }
-        for (i in 1:length(samples)) {
-        print(paste0("Converting sample ", samples[i]))
-        obj.sub = obj[[samples[i]]]
-        DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
-        }
-}
 
 demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
 
 ```
+
+# Split and save by CHIP/CCUS/control.
+```{r}
+# Function for demultiplexing and saving in CCUS folder.
+demultiplex_convert_to_10x = function(obj, samples) { 
+    if(!dir.exists(file.path(getwd(), "ccus_demultiplexed"))) {
+      dir.create(file.path(getwd(), "ccus_demultiplexed"))
+    }
+    for (i in 1:length(samples)) {
+      print(paste0("Converting sample ", samples[i]))
+      obj.sub = obj[[samples[i]]]
+      DropletUtils::write10xCounts(path = paste0(getwd(),"/ccus_demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+      }
+}
+
+# Add CCUS labels.
+scaled_filtered_annotated_seurat@meta.data$CCUS = "Control"
+scaled_filtered_annotated_seurat@meta.data$CCUS[scaled_filtered_annotated_seurat@meta.data$CHIP == "chip"] = "CHIP"
+scaled_filtered_annotated_seurat@meta.data$CCUS[scaled_filtered_annotated_seurat@meta.data$CHIVEID %in% c("CH-20-004", "CH-21-014", "CH-21-036", "CH-21-073")] = "CCUS"
+
+# Create CCUS group labels.
+scaled_filtered_annotated_seurat@meta.data$CCUS_GROUP = paste(scaled_filtered_annotated_seurat@meta.data$MUTATION.GROUP, scaled_filtered_annotated_seurat@meta.data$CCUS, scaled_filtered_annotated_seurat@meta.data$STIM, sep = "_")
+
+# Split and save.
+scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "CCUS_GROUP")
+sample.names = unique(scaled_filtered_annotated_seurat$CCUS_GROUP)
+rm(scaled_filtered_annotated_seurat)
+gc()
+demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
+```
+
+
+
 # We attempted metacells2 for mutated/wt cells but there were not enough cells to have power for comparison.
 ```{r}
 dnmt3a_mutant_seu = readRDS("rds_objects/DNMT3Amutant_seu.rds")
