@@ -124,7 +124,6 @@ find_pathways("DNMT3A", "CD14 Monos", stim_status = "STIM")
 library(future)
 plan(multisession)
 
-
 sample_genotypes = c("DNMT3A", "TET2")
 diet_seurat = readRDS("rds_objects/diet_seurat.rds")
 cell_types = diet_seurat@meta.data$cell_type %>% unique()

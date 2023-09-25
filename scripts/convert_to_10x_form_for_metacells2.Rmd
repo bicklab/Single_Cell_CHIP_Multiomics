@@ -9,15 +9,10 @@ knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(tidyverse)
 library(Seurat)
-```
-
-
-```{r}
-# load package to save 10X files from Seurat object
-BiocManager::install("DropletUtils")
 library(DropletUtils)
 library(Matrix)
 ```
+
 
 ```{r}
 # save files (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files)
@@ -27,13 +22,10 @@ DefaultAssay(scaled_filtered_annotated_seurat) <- "RNA"
 counts = scaled_filtered_annotated_seurat[["RNA"]]@data
 
 demultiplex_convert_to_10x = function(obj, samples) { 
-    if(!dir.exists(file.path(getwd(), "demultiplexed"))) {
-      dir.create(file.path(getwd(), "demultiplexed"))
-    }
     for (i in 1:length(samples)) {
       print(paste0("Converting sample ", samples[i]))
       obj.sub = obj[[samples[i]]]
-      DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+      DropletUtils::write10xCounts(path = paste0(getwd(),"/demultiplexed_cell_types/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
       }
 }
 
@@ -44,9 +36,9 @@ demultiplex_convert_to_10x = function(obj, samples) {
 
 # Split and save by CHIP/control.
 ```{r}
-
-scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "GROUP")
-sample.names = unique(scaled_filtered_annotated_seurat$GROUP)
+scaled_filtered_annotated_seurat@meta.data$Cell_Type_Group = paste(scaled_filtered_annotated_seurat@meta.data$cell_type, scaled_filtered_annotated_seurat@meta.data$GROUP)
+scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "Cell_Type_Group")
+sample.names = unique(scaled_filtered_annotated_seurat$Cell_Type_Group)
 
 demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
 

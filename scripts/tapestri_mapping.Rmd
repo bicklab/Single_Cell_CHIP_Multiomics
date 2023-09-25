@@ -1,0 +1,17 @@
+---
+title: "tapestri_mapping"
+output: html_document
+date: '2023-09-01'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(tidyverse)
+```
+
+```{r}
+tapestri_data = read_csv("input_data/tapestri_mutations_for_AC.csv")
+```
+
+

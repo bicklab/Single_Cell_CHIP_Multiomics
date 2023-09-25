@@ -14,7 +14,7 @@ library(Seurat)
 ```{r}
 # make object smaller
 
-diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
+#diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
 #saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
 
 diet_seurat = readRDS("rds_objects/diet_seurat.rds")
@@ -26,13 +26,6 @@ counts = diet_seurat@assays$RNA
 
 # THIS IS THE ONE THAT WORKS :)
 ```{r}
-# library(MuDataSeurat)
-# 
-# tet2_stim = ReadH5AD("h5ad_files/tet2_stim_for_seurat.h5ad")
-# none_stim = ReadH5AD("h5ad_files/none_stim_for_seurat.h5ad")
-
-#scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
-
 
 tet2_stim_labels = read_csv("metacells/tet2_stim_metacells.csv")
 dnmt3a_stim_labels = read_csv("metacells/dnmt3a_stim_metacells.csv")
@@ -54,9 +47,6 @@ all_labels = rbind(tet2_stim_labels, dnmt3a_stim_labels, none_stim_labels,
 
 
 ```{r}
-
-#diet_seurat = readRDS("rds_objects/diet_seurat.rds")
-
 # need some more stringent removal of doublets for one lane
 pANN_frame = read_tsv("input_data/pANN_frame.tsv") %>% as.data.frame()
 rownames(pANN_frame) = pANN_frame$cell_ID
@@ -128,11 +118,7 @@ clump = function(agg_sce, label1, label2, shrinkage = TRUE, cell_type) {
     dds = dds[keep,]
     dds = DESeq(dds)
     
-    # if (shrinkage) {
-    #     res = lfcShrink(dds, coef = paste0("GROUP_", gsub(" ", ".", label1), "_vs_", gsub(" ", ".", label2)), type = "apeglm", quiet = TRUE)
-    # } else {
-        res = results(dds, contrast=c("GROUP", label1, label2))
-    # }
+    res = results(dds, contrast=c("GROUP", label1, label2))
 
     summary(res)
     res_ordered_wald = res[order(res$padj),] %>%
@@ -142,9 +128,6 @@ clump = function(agg_sce, label1, label2, shrinkage = TRUE, cell_type) {
     write_tsv(res_ordered_wald, paste0("tables/metacells_de_trimmed/", cell_type, "_", gsub(" ", "_", label1), "_vs_", gsub(" ", "_", label2), ".tsv"))
     return(res_ordered_wald)
 }
-
-
-
 
 
 get_cell_type_data_for_clumping = function(cell_type_name) {
