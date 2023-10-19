@@ -4,7 +4,7 @@ output: html_document
 date: '2023-04-10'
 ---
 
-```{r setup, include=FALSE, echo=FALSE}
+```{r setup}
 knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(tidyverse)
@@ -13,13 +13,32 @@ library(DropletUtils)
 library(Matrix)
 ```
 
+# Trim excessive data and clear remaining doublets.
+```{r}
+#diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
+#saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
+
+# need some more stringent removal of doublets for one lane
+pANN_frame = read_tsv("input_data/pANN_frame.tsv") %>% as.data.frame()
+rownames(pANN_frame) = pANN_frame$cell_ID
+diet_seurat_trimmed = AddMetaData(diet_seurat, pANN_frame)
+
+cells_to_remove = diet_seurat_trimmed@meta.data %>%
+  filter(LANE == "7079-3") %>%
+  filter(pANN >= 0.28) %>%
+  pull(cell_ID)
+
+diet_seurat_trimmed = diet_seurat_trimmed[,!colnames(diet_seurat_trimmed) %in% cells_to_remove]
+saveRDS(diet_seurat_trimmed, "rds_objects/diet_seurat_trimmed.rds")
+
+```
 
 ```{r}
 # save files (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files)
-scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
+diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
 
-DefaultAssay(scaled_filtered_annotated_seurat) <- "RNA"
-counts = scaled_filtered_annotated_seurat[["RNA"]]@data
+DefaultAssay(diet_seurat_trimmed) <- "RNA"
+counts = diet_seurat_trimmed[["RNA"]]@data
 
 demultiplex_convert_to_10x = function(obj, samples) { 
     for (i in 1:length(samples)) {
@@ -36,15 +55,15 @@ demultiplex_convert_to_10x = function(obj, samples) {
 
 # Split and save by CHIP/control.
 ```{r}
-scaled_filtered_annotated_seurat@meta.data$Cell_Type_Group = paste(scaled_filtered_annotated_seurat@meta.data$cell_type, scaled_filtered_annotated_seurat@meta.data$GROUP)
-scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "Cell_Type_Group")
-sample.names = unique(scaled_filtered_annotated_seurat$Cell_Type_Group)
+diet_seurat_trimmed@meta.data$Cell_Type_Group = paste(diet_seurat_trimmed@meta.data$cell_type, diet_seurat_trimmed@meta.data$GROUP)
+diet_seurat_trimmed.list = Seurat::SplitObject(diet_seurat_trimmed, split.by = "Cell_Type_Group")
+sample.names = unique(diet_seurat_trimmed$Cell_Type_Group)
 
-demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
+demultiplex_convert_to_10x(obj = diet_seurat_trimmed.list, samples = sample.names)
 
 ```
 
-# Split and save by CHIP/CCUS/control.
+# Split and save by CHIP/CCUS/control and cell types.
 ```{r}
 # Function for demultiplexing and saving in CCUS folder.
 demultiplex_convert_to_10x = function(obj, samples) { 
@@ -54,24 +73,24 @@ demultiplex_convert_to_10x = function(obj, samples) {
     for (i in 1:length(samples)) {
       print(paste0("Converting sample ", samples[i]))
       obj.sub = obj[[samples[i]]]
-      DropletUtils::write10xCounts(path = paste0(getwd(),"/ccus_demultiplexed/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
+      DropletUtils::write10xCounts(path = paste0(getwd(),"/ccus_demultiplexed_cell_types/",samples[i]), x = obj.sub[["RNA"]]@data, type = "sparse", version="3")
       }
 }
 
 # Add CCUS labels.
-scaled_filtered_annotated_seurat@meta.data$CCUS = "Control"
-scaled_filtered_annotated_seurat@meta.data$CCUS[scaled_filtered_annotated_seurat@meta.data$CHIP == "chip"] = "CHIP"
-scaled_filtered_annotated_seurat@meta.data$CCUS[scaled_filtered_annotated_seurat@meta.data$CHIVEID %in% c("CH-20-004", "CH-21-014", "CH-21-036", "CH-21-073")] = "CCUS"
+diet_seurat_trimmed@meta.data$CCUS = "Control"
+diet_seurat_trimmed@meta.data$CCUS[diet_seurat_trimmed@meta.data$CHIP == "chip"] = "CHIP"
+diet_seurat_trimmed@meta.data$CCUS[diet_seurat_trimmed@meta.data$CHIVEID %in% c("CH-20-004", "CH-21-014", "CH-21-073")] = "CCUS"
 
-# Create CCUS group labels.
-scaled_filtered_annotated_seurat@meta.data$CCUS_GROUP = paste(scaled_filtered_annotated_seurat@meta.data$MUTATION.GROUP, scaled_filtered_annotated_seurat@meta.data$CCUS, scaled_filtered_annotated_seurat@meta.data$STIM, sep = "_")
+# Create CCUS cell type group labels.
+diet_seurat_trimmed@meta.data$Cell_Type_Group = paste(diet_seurat_trimmed@meta.data$cell_type, diet_seurat_trimmed@meta.data$MUTATION.GROUP, diet_seurat_trimmed@meta.data$CCUS, diet_seurat_trimmed@meta.data$STIM, sep = "_")
 
 # Split and save.
-scaled_filtered_annotated_seurat.list = Seurat::SplitObject(scaled_filtered_annotated_seurat, split.by = "CCUS_GROUP")
-sample.names = unique(scaled_filtered_annotated_seurat$CCUS_GROUP)
-rm(scaled_filtered_annotated_seurat)
+diet_seurat_trimmed.list = Seurat::SplitObject(diet_seurat_trimmed, split.by = "Cell_Type_Group")
+sample.names = names(diet_seurat_trimmed.list)
+rm(diet_seurat_trimmed)
 gc()
-demultiplex_convert_to_10x(obj = scaled_filtered_annotated_seurat.list, samples = sample.names)
+demultiplex_convert_to_10x(obj = diet_seurat_trimmed.list, samples = sample.names)
 ```
 
 

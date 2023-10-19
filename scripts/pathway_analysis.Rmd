@@ -21,10 +21,10 @@ organism = "org.Hs.eg.db"
 library(organism, character.only = TRUE)
 
 find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = TRUE) {
-  cell_type_name = gsub(" ", "_", gsub("+", "", cell_type, fixed = TRUE))
+  cell_type_name = cell_type #gsub(" ", "_", gsub("+", "", cell_type, fixed = TRUE))
   # load expression data from stats output
-  folder = "tables/metacells_de_filtered/"
-  pattern = paste0("^", cell_type_name, "_", sample_genotype, "_", stim_status, ".*")
+  folder = "tables/metacells_de_cell_types/"
+  pattern = paste0("^", cell_type_name, "_", sample_genotype) #, "_", stim_status, ".*")
   print(pattern)
 
   input_filename = list.files(folder, pattern)
@@ -79,19 +79,12 @@ find_pathways = function(sample_genotype, cell_type, stim_status, use_cutoff = T
     
     
     # save plots
-    filename = paste0(output_dir, "dotplot_", sample_genotype, "_", cell_type_name, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status)
     split_filename = paste0(output_dir, "split_dotplot_", sample_genotype, "_", cell_type_name, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status)
-
-    filename_all = paste0(output_dir_all, "dotplot_", sample_genotype, "_", cell_type_name, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status, "_all")
     split_filename_all = paste0(output_dir_all, "split_dotplot_", sample_genotype, "_", cell_type_name, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status, "_all")
     
     save_plot(split_plot, split_filename, height = 6.5, width = 7)
-    save_plot(plot, filename, height = 6.5, width = 6)
-    
     save_plot(split_plot_all, split_filename_all, height = 6.5, width = 7)
-    save_plot(plot_all, filename_all, height = 6.5, width = 6)
 
-    
     gse_filename = paste0("tables/gse_results/", sample_genotype, "_", cell_type_name, ifelse(use_cutoff, "", "_no_cutoff"), "_", stim_status, "_gse.tsv")
     write_tsv(gse@result, gse_filename)
     
@@ -114,8 +107,8 @@ find_pathways("DNMT3A", "CD14 Monos", stim_status = "VEH")
 find_pathways("TET2", "CD4+ T cells", stim_status = "VEH")
 find_pathways("DNMT3A", "CD4+ T cells", stim_status = "VEH")
 
-find_pathways("TET2", "CD14 Monos", stim_status = "STIM")
-find_pathways("DNMT3A", "CD14 Monos", stim_status = "STIM")
+find_pathways("TET2", "CD8+ T cells", stim_status = "STIM")
+find_pathways("DNMT3A", "CD8+ T cells", stim_status = "STIM")
 
 ```
 

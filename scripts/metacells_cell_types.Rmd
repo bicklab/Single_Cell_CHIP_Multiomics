@@ -53,7 +53,9 @@ clump = function(agg_sce, label1, label2, cell_type) {
                     colData = metadata, 
                     design = ~ GROUP)
     
-    keep = rowSums(counts(dds)) >= 3
+    smallest_group_sample_size = min(sum(metadata$CHIP == label1), sum(metadata$CHIP == label2))
+    
+    keep = rowSums(counts(dds) >= 10) >= nrow(metadata) * 0.85 # 10 # at least 10 metacells that have at least 10 transcripts
     dds = dds[keep,]
     dds = DESeq(dds)
     
