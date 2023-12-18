@@ -4,7 +4,7 @@ output: html_document
 date: '2023-03-22'
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(Seurat)
@@ -102,7 +102,7 @@ summarize_data = function(data, grouping_category) {
     dplyr::group_by(across(all_of(grouping_category)), cell_type) %>%
     dplyr::summarize(count = dplyr::n()) %>%
     dplyr::mutate(proportion = count / sum(count)) %>%
-    dplyr::mutate(cell_type = factor(cell_type, levels = c("CD4+ T cells", "CD8+ T cells", "CD14+ Monocytes", "NK cells", "B cells", "CD16+ Monocytes", "Dendritic cells",  "Erythroid-like cells", "Platelets"))) %>%
+    dplyr::mutate(cell_type = factor(cell_type, levels = c("CD4+ T cells", "CD8+ T cells", "CD14+ Monocytes", "NK cells", "B cells", "CD16+ Monocytes", "Dendritic cells",  "Platelets", "Erythroid-like cells"))) %>%
     dplyr::arrange(cell_type) %>%
     dplyr::select(-count) %>%
     na.omit() %>%
@@ -121,7 +121,7 @@ radar_stats = summary_stats %>%
                 grid.min = 0, grid.mid = 0.2, grid.max = 0.5,
                 group.line.width = 0.75,
                 group.point.size = 1.5,
-                group.colours = brewer.pal(6, "Paired")[c(2,4,6)],
+                group.colours = c("grey", brewer.pal(6, "Paired")[c(4,6)]),
                 background.circle.colour = "white",
                 gridline.mid.colour = "grey",
                 legend.position = "bottom") +
@@ -206,18 +206,59 @@ make_radar(dnmt3a_for_radar, "DNMT3A")
 
 # All patients plot ---------------------------------------------------------
 
-length(unique(diet_seurat_trimmed@meta.data$cell_type))
+diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "CD14 Monos"] = "CD14+ Monocytes"
+diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
+diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "B"] = "B cells"
+diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "NK"] = "NK cells"
+
 (all_data_umap = ggplot2::ggplot(diet_seurat_trimmed@meta.data, ggplot2::aes(x = UMAP_1, y = UMAP_2, fill = cell_type)) +
     geom_point(color = "white", size = 1, shape = 21, stroke = 0.05) +
     ggplot2::scale_fill_manual(values = brewer.pal(9, "Paired")) +
     format_add_just_arrows +
-    labs(fill = "Cell type"))
+    labs(fill = "Cell type") +
+    theme(legend.key.size = unit(0.15, "cm")))
 
 filename = paste0(output_dir, "umap_all_data")
-save_plot(all_data_umap, filename, height = 4, width = 6, png = TRUE)
+save_plot(all_data_umap, filename, height = 2.5, width = 4, png = TRUE)
 
 ```
 
+
+
+# Plot UMAP labeled by mutant status.
+```{r}
+# DNMT3A CH-21-046
+# TET2 CH-21-014
+mutant_data = readRDS("../SC_CHIP_HIV_Diabetes/input_data/seurat_with_clones_PB_10.16.23.rds")
+mutant_data$MUTATION.GROUP[mutant_data$MUTATION.GROUP == "none"] = "Control"
+mutant_data@meta.data = mutant_data@meta.data %>%
+  mutate(MUTATION.GROUP = factor(MUTATION.GROUP, levels = c("TET2", "DNMT3A", "Control")))
+
+tet2_mutant_data_subset = subset(mutant_data, subset = CHIVEID %in% c("CH-21-014"))
+dnmt3a_mutant_data_subset = subset(mutant_data, subset = CHIVEID %in% c("CH-21-046"))
+
+(tet2_mutant_umap = ggplot2::ggplot(tet2_mutant_data_subset@meta.data %>% filter(!is.na(Clone)), ggplot2::aes(x = UMAP_1, y = UMAP_2, fill = Clone)) +
+    geom_point(color = "white", size = 0.75, shape = 21, stroke = 0.1) +
+    ggplot2::scale_fill_manual(values = c(brewer.pal(6, "Paired")[c(4)], "grey", brewer.pal(6, "Paired")[c(2)])) +
+    format_add_just_arrows +
+    labs(fill = "Mutant status") +
+    ggtitle("TET2 indicated by 7754G>C") +
+    theme(plot.title = element_text(face = "bold")))
+(dnmt3a_mutant_umap = ggplot2::ggplot(dnmt3a_mutant_data_subset@meta.data %>% filter(!is.na(Clone)), ggplot2::aes(x = UMAP_1, y = UMAP_2, fill = Clone)) +
+    geom_point(color = "white", size = 0.75, shape = 21, stroke = 0.1) +
+    ggplot2::scale_fill_manual(values = c(brewer.pal(6, "Paired")[c(6)], "grey", brewer.pal(6, "Paired")[c(2)])) +
+    format_add_just_arrows +
+    labs(fill = "Mutant status") +
+    ggtitle("DNMT3A indicated by 747A>G") +
+    theme(plot.title = element_text(face = "bold")))
+
+tet2_mutant_filename = paste0(output_dir, "mutant_umap_tet2")
+dnmt3a_mutant_filename = paste0(output_dir, "mutant_umap_dnmt3a")
+
+save_plot(tet2_mutant_umap, tet2_mutant_filename, height = 2.5, width = 3.75, png = TRUE)
+save_plot(dnmt3a_mutant_umap, dnmt3a_mutant_filename, height = 2.5, width = 3.75, png = TRUE)
+
+```
 
 # Plot heatmap.
 ```{r}

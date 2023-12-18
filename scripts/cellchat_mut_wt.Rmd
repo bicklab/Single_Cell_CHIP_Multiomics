@@ -1,0 +1,246 @@
+---
+title: "cellchat"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(Seurat)
+library(tidyverse)
+library(CellChat)
+library(RColorBrewer)
+
+source("../scripts/image_formatting.R")
+
+```
+
+```{r}
+clean_with_clones = readRDS("../SC_CHIP_HIV_Diabetes/input_data/seurat_with_clones_PB_10.16.23.rds")
+clean_with_clones$Clone[is.na(clean_with_clones$Clone)] = "Unassigned"
+```
+
+
+```{r}
+
+
+# Generate Cell Chat Objects 
+create_cc = function(seu_obj, nPatterns = 3, output_path = "", group_by = "cell_type") {
+
+  cellchat = createCellChat(object = seu_obj, meta = seu_obj@meta.data, group.by = group_by) 
+  cellchat@DB = CellChatDB.human
+
+  cellchat = subsetData(cellchat)
+  cellchat = identifyOverExpressedGenes(cellchat)
+  cellchat = identifyOverExpressedInteractions(cellchat)
+  cellchat = projectData(cellchat, PPI.human) 
+  cellchat = computeCommunProb(cellchat, type = 'truncatedMean', trim = 0.1) 
+ 
+  cellchat = filterCommunication(cellchat, min.cells = 25) 
+  cellchat = computeCommunProbPathway(cellchat) 
+  cellchat = aggregateNet(cellchat) 
+  cellchat = netAnalysis_computeCentrality(cellchat, slot.name = "netP") 
+  
+  if (output_path != "") {
+    saveRDS(cellchat, output_path)
+  }
+  return(cellchat)
+}
+
+
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD14 Monos"] = "CD14+ Monocytes"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "B"] = "B cells"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "NK"] = "NK cells"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD14+ Monocytes" & clean_with_clones@meta.data$fake_monos == "fake"] = "Uncertain Monocytes"
+
+
+veh_clones_trimmed = subset(clean_with_clones, subset = STIM == "VEH")
+
+# Mutation, celltype, genotype split object. ----------------------------------------------------------------
+veh_complete_mut.list = SplitObject(veh_clones_trimmed, split.by = "MUTATION.GROUP")
+
+veh_complete_tet2_mut = veh_complete_mut.list$TET2
+veh_complete_dnmt3a_mut = veh_complete_mut.list$DNMT3A
+veh_complete_control = veh_complete_mut.list$none
+
+veh_complete_tet2_mut$cell_type[veh_complete_tet2_mut$cell_type == "CD14+ Monocytes" & veh_complete_tet2_mut$Clone != "Mutant"] = "Nonmutant CD14+ Monocytes"
+veh_complete_dnmt3a_mut$cell_type[veh_complete_dnmt3a_mut$cell_type == "CD14+ Monocytes" & veh_complete_dnmt3a_mut$Clone != "Mutant"] = "Nonmutant CD14+ Monocytes"
+
+
+veh_complete_tet2_mut_cc = create_cc(veh_complete_tet2_mut, output_path = "rds_objects/veh_complete_tet2_mut_cc.rds")
+veh_complete_dnmt3a_mut_cc = create_cc(veh_complete_dnmt3a_mut, output_path = "rds_objects/veh_complete_dnmt3a_mut_cc.rds")
+veh_complete_control_cc = create_cc(veh_complete_control, output_path = "rds_objects/veh_complete_control_cc.rds")
+
+```
+
+
+
+```{r}
+veh_complete_control_cc = readRDS("rds_objects/cellchat/veh_complete_control_cc.rds")
+veh_complete_tet2_mut_cc = readRDS("rds_objects/cellchat/veh_complete_tet2_mut_cc.rds")
+veh_complete_dnmt3a_mut_cc = readRDS("rds_objects/cellchat/veh_complete_dnmt3a_mut_cc.rds")
+```
+
+
+```{r}
+tet2_cc_mut.list = list(TET2 = veh_complete_tet2_mut_cc, Control = veh_complete_control_cc)
+tet2_merged_cc_mut = mergeCellChat(tet2_cc_mut.list, add.names = names(tet2_cc_mut.list))
+tet2_merged_cc_mut = updateCellChat(tet2_merged_cc_mut)
+
+dnmt3a_cc_mut.list = list(DNMT3A = veh_complete_dnmt3a_mut_cc, Control = veh_complete_control_cc)
+dnmt3a_merged_cc_mut = mergeCellChat(dnmt3a_cc_mut.list, add.names = names(dnmt3a_cc_mut.list))
+dnmt3a_merged_cc_mut = updateCellChat(dnmt3a_merged_cc_mut)
+# 
+# all_cc_mut.list = list(`TET2 Mutant` = veh_cc_tet2_mut, `DNMT3A Mutant` = veh_cc_dnmt3a_mut, Control = veh_cc_control_mut)
+# all_merged_cc_mut = mergeCellChat(all_cc_mut.list, add.names = names(all_cc_mut.list))
+# all_merged_cc_mut = updateCellChat(all_merged_cc_mut)
+```
+
+
+```{r}
+(rankNet(veh_complete_tet2_mut_cc, mode = "single", sources.use = c("TET2 Mutant CD14+ Monocytes"), measure = c("weight", "count")))
+(rankNet(veh_complete_control_cc, mode = "single", sources.use = c("Control CD14+ Monocytes"), measure = c("weight", "count")))
+
+
+```
+
+```{r}
+(tet2_cd14_cc_mut_all = rankNet(tet2_merged_cc_mut, mode = "comparison", sources.use = c("CD14+ Monocytes"), do.stat = TRUE))
+(dnmt3a_cd14_cc_mut_all = rankNet(dnmt3a_merged_cc_mut, mode = "comparison", sources.use = c("CD14+ Monocytes"), do.stat = TRUE))
+
+
+
+View(tet2_cd14_cc_mut_all$data)
+View(dnmt3a_cd14_cc_mut_all$data)
+write_tsv(tet2_cd14_cc_mut_all$data, "tables/cellchat/tet2_cd14_cc_mut_all.tsv")
+write_tsv(dnmt3a_cd14_cc_mut_all$data, "tables/cellchat/dnmt3a_cd14_cc_mut_all.tsv")
+
+```
+
+
+```{r}
+(tet2_cd14_cc_mut_bar = rankNet(tet2_merged_cc_mut, mode = "comparison", comparison = c(1,2), sources.use = c("CD14+ Monocytes"), targets.use = c("B cells", "CD14+ Monocytes", "CD16+ Monocytes", "CD4+ T cells", "CD8+ T cells", "Dendritic cells", "Erythroid-like cells", "NK cells", "Platelets" ), signaling = c("MIF", "ANNEXIN", "ITGB2", "ICAM", "THBS", "CCL", "GALECTIN"), do.stat = TRUE, measure = "weight"))
+(dnmt3a_cd14_cc_mut_bar = rankNet(dnmt3a_merged_cc_mut, mode = "comparison", comparison = c(1,2), sources.use = c("CD14+ Monocytes"), targets.use = c("B cells", "CD14+ Monocytes", "CD16+ Monocytes", "CD4+ T cells", "CD8+ T cells", "Dendritic cells", "Erythroid-like cells", "NK cells", "Platelets" ), signaling = c("CCL", "ANNEXIN", "GALECTIN", "TGFb", "MIF", "TNF", "THBS"), do.stat = TRUE))
+
+#
+
+
+```
+
+```{r}
+make_heat_plot = function(heat, sample_genotype) {
+  heat = heat %>%
+    rowwise() %>%
+    mutate(name = paste0(name, ifelse(pvalues < 0.05, "*", "")))
+  ggplot(heat, aes(name, group, fill = contribution.scaled)) + 
+  geom_tile() + 
+  scale_fill_gradient(low = ifelse(sample_genotype == "TET2", brewer.pal(6, "Paired")[3], brewer.pal(6, "Paired")[5]), 
+                      high = ifelse(sample_genotype == "TET2", brewer.pal(6, "Paired")[4], brewer.pal(6, "Paired")[6]),
+                      breaks = c(min(heat$contribution.scaled), max(heat$contribution.scaled)),
+                      labels = c("Low","High")) +  
+  xlab("") +
+  ylab("") +
+  ggtitle("Outgoing mutant CD14+ monocyte signaling") + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())
+}
+
+(tet2_cd14_heat = make_heat_plot(tet2_cd14_cc_mut_bar$data, "TET2"))
+(dnmt3a_cd14_heat = make_heat_plot(dnmt3a_cd14_cc_mut_bar$data, "DNMT3A"))
+ 
+save_plot(tet2_cd14_heat, "figures/cellchat/mut_tet2_cd14_heat", height = 2, width = 6)
+save_plot(dnmt3a_cd14_heat, "figures/cellchat/mut_dnmt3a_cd14_heat", height = 2, width = 6)
+
+```
+
+```{r}
+# Titles do not output
+
+netVisual_diffInteraction(tet2_merged_cc_mut, weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), remove.isolate = TRUE)
+netVisual_diffInteraction(dnmt3a_merged_cc_mut, weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), remove.isolate = TRUE)
+
+```
+```{r}
+veh_cc_tet2_mut <- netAnalysis_computeCentrality(veh_cc_tet2_mut, slot.name = "netP") 
+netAnalysis_signalingRole_network(veh_cc_tet2_mut, signaling = "IL1", width = 8, height = 2.5, font.size = 10)
+
+veh_cc_control_mut <- netAnalysis_computeCentrality(veh_cc_control_mut, slot.name = "netP") 
+netAnalysis_signalingRole_network(veh_cc_control_mut, signaling = "IL1", width = 8, height = 2.5, font.size = 10)
+
+
+veh_cc_dnmt3a_mut <- netAnalysis_computeCentrality(veh_cc_dnmt3a_mut, slot.name = "netP") 
+netAnalysis_signalingRole_network(veh_cc_dnmt3a_mut, signaling = "CCL", width = 8, height = 2.5, font.size = 10)
+
+veh_cc_control_mut <- netAnalysis_computeCentrality(veh_cc_control_mut, slot.name = "netP") 
+netAnalysis_signalingRole_network(veh_cc_control_mut, signaling = "CCL", width = 8, height = 2.5, font.size = 10)
+
+
+
+```
+# Make object for sender/receiver plot.
+```{r}
+
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD14 Monos"] = "CD14+ Monocytes"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "B"] = "B cells"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "NK"] = "NK cells"
+clean_with_clones@meta.data$cell_type[clean_with_clones@meta.data$cell_type == "CD14+ Monocytes" & clean_with_clones@meta.data$fake_monos == "fake"] = "Fake CD14+ Monocytes"
+
+
+veh_clones_trimmed = subset(clean_with_clones, subset = STIM == "VEH")
+veh_clones_trimmed = subset(veh_clones_trimmed, subset = fake_monos == "real")
+veh_clones_trimmed$Identifier = paste(veh_clones_trimmed$MUTATION.GROUP, veh_clones_trimmed$Clone)
+veh_clones_trimmed$Identifier[veh_clones_trimmed$Identifier == "none Unassigned"] = "Control"
+
+veh_clones_trimmed$cell_type[veh_clones_trimmed$cell_type == "CD14+ Monocytes"] = paste( veh_clones_trimmed$Identifier[veh_clones_trimmed$cell_type == "CD14+ Monocytes"], veh_clones_trimmed$cell_type[veh_clones_trimmed$cell_type == "CD14+ Monocytes"])
+
+veh_clones_trimmed = subset(veh_clones_trimmed, subset = cell_type %in% c("DNMT3A Unassigned CD14+ Monocytes", "DNMT3A Wildtype CD14+ Monocytes", "TET2 Unassigned CD14+ Monocytes", "TET2 Wildtype CD14+ Monocytes"), invert = TRUE)
+
+
+tet2_control_veh_clones = subset(veh_clones_trimmed, subset = MUTATION.GROUP %in% c("TET2", "none"))
+dnmt3a_control_veh_clones = subset(veh_clones_trimmed, subset = MUTATION.GROUP %in% c("DNMT3A", "none"))
+
+tet2_control_veh_clones_cc = create_cc(tet2_control_veh_clones, output_path = "rds_objects/cellchat/tet2_control_veh_clones_cc.rds")
+dnmt3a_control_veh_clones_cc = create_cc(dnmt3a_control_veh_clones, output_path = "rds_objects/cellchat/dnmt3a_control_veh_clones_cc.rds")
+
+
+```
+
+
+
+```{r}
+tet2_control_veh_clones_cc = readRDS("rds_objects/tet2_control_veh_clones_cc.rds")
+dnmt3a_control_veh_clones_cc = readRDS("rds_objects/dnmt3a_control_veh_clones_cc.rds")
+tet2_control_veh_clones_cc = netAnalysis_computeCentrality(tet2_control_veh_clones_cc, slot.name = "netP") 
+dnmt3a_control_veh_clones_cc = netAnalysis_computeCentrality(dnmt3a_control_veh_clones_cc, slot.name = "netP") 
+```
+
+
+```{r}
+
+(rankNet(tet2_control_veh_clones_cc, mode = "single", sources.use = c("TET2 Mutant CD14+ Monocytes"), do.stat = TRUE, measure = c("weight", "count")))
+(rankNet(tet2_control_veh_clones_cc, mode = "single", sources.use = c("Control CD14+ Monocytes"), do.stat = TRUE, measure = c("weight", "count")))
+
+```
+
+```{r}
+(tet2_thbs_send_rec = netAnalysis_signalingRole_network(tet2_control_veh_clones_cc, signaling = "THBS", width = 8, height = 2.5, font.size = 10))
+(dnmt3a_ccl_send_rec = netAnalysis_signalingRole_network(dnmt3a_control_veh_clones_cc, signaling = "CCL", width = 8, height = 2.5, font.size = 10))
+
+pdf("figures/cellchat/tet2_thbs_send_rec.pdf")
+netAnalysis_signalingRole_network(tet2_control_veh_clones_cc, signaling = "THBS", width = 8, height = 2.5, font.size = 10)
+dev.off()
+
+pdf("figures/cellchat/dnmt3a_ccl_send_rec.pdf")
+netAnalysis_signalingRole_network(dnmt3a_control_veh_clones_cc, signaling = "CCL", width = 8, height = 2.5, font.size = 10)
+dev.off()
+```
+
+
+```{r}
+for (pathway in tet2_control_veh_clones_cc@netP$pathways) {
+  netAnalysis_signalingRole_network(tet2_control_veh_clones_cc, signaling = pathway, width = 8, height = 2.5, font.size = 10)
+}
+```
+

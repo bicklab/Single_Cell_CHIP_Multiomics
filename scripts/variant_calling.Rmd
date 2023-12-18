@@ -1,0 +1,27 @@
+---
+title: "variant_calling"
+output: html_document
+date: "2023-12-05"
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+library(Seurat)
+library(tidyverse)
+
+```
+
+```{r}
+clone_map = read_tsv("tables/scomatic/clone_map.tsv")
+cd14_variant_calls = read_tsv("input_data/CD14_Monos.tet2_dnmt3a.single_cell_genotype.tsv")
+```
+
+```{r}
+clone_map = clone_map %>%
+  mutate(CB = substr(Index, 1, 16))
+
+cd14_joined_variants = full_join(clone_map, cd14_variant_calls)
+
+table(cd14_joined_variants$Clone, cd14_joined_variants$ALT_expected == cd14_joined_variants$Base_observed)
+```
+

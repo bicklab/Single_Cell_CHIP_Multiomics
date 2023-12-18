@@ -46,3 +46,47 @@ clone_data_for_radar = clone_data@meta.data %>%
   summarise(count = n())
 
 ```
+
+
+```{r}
+library(scProportionTest)
+
+prop_test = sc_utils(diet_seurat_trimmed)
+prop_test@meta_data = prop_test@meta_data %>%
+  mutate(MUTATION.GROUP = as.factor(diet_seurat_trimmed$MUTATION.GROUP %>% unlist())) %>%
+  mutate(cell_type = as.factor(diet_seurat_trimmed$cell_type))
+
+prop_test_tet2 = permutation_test(
+  prop_test, cluster_identity = "cell_type",
+  sample_1 = "none", sample_2 = "TET2",
+  sample_identity = "MUTATION.GROUP"
+)
+permutation_plot(prop_test_tet2)
+
+prop_test_dnmt3a = permutation_test(
+  prop_test, cluster_identity = "cell_type",
+  sample_1 = "none", sample_2 = "DNMT3A",
+  sample_identity = "MUTATION.GROUP"
+)
+permutation_plot(prop_test_dnmt3a)
+```
+```{r}
+library(scProportionTest)
+
+clone_data = readRDS("../SC_CHIP_HIV_Diabetes/input_data/seurat_with_clones_PB_10.16.23.rds")
+clone_data_014 = clone_data %>% subset(CHIVEID == "CH-21-014")
+
+prop_test = sc_utils(clone_data_014)
+prop_test@meta_data = prop_test@meta_data %>%
+  mutate(Clone = as.factor(clone_data_014$Clone %>% unlist())) %>%
+  mutate(cell_type = as.factor(clone_data_014$cell_type))
+
+prop_test_tet2 = permutation_test(
+  prop_test, cluster_identity = "cell_type",
+  sample_1 = "Wildtype", sample_2 = "Mutant",
+  sample_identity = "Clone"
+)
+permutation_plot(prop_test_tet2)
+
+```
+

@@ -4,7 +4,7 @@ output: html_document
 date: "2023-09-25"
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(tidyverse)
@@ -37,6 +37,7 @@ saveRDS(diet_seurat_trimmed, "rds_objects/diet_seurat_trimmed.rds")
 
 # Get counts.
 ```{r}
+source("scripts/image_formatting.R")
 diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
 counts = diet_seurat_trimmed@assays$RNA
 ```
@@ -55,7 +56,7 @@ clump = function(agg_sce, label1, label2, cell_type) {
     
     smallest_group_sample_size = min(sum(metadata$CHIP == label1), sum(metadata$CHIP == label2))
     
-    keep = rowSums(counts(dds) >= 10) >= nrow(metadata) * 0.85 # 10 # at least 10 metacells that have at least 10 transcripts
+    keep = rowSums(counts(dds) >= 10) >= nrow(metadata) * 0.85 # at least 85% of metacells have at least 10 transcripts
     dds = dds[keep,]
     dds = DESeq(dds)
     
@@ -126,4 +127,90 @@ run_chip_comparisons = function(cell_type_name) {
 cell_types = c("CD14 Monos", "CD8+ T cells", "CD4+ T cells")
 lapply(cell_types, run_chip_comparisons)
 
+run_chip_comparisons("NK")
+run_chip_comparisons("B")
+
 ```
+
+
+```{r}
+library(scater)
+library(RColorBrewer)
+
+make_vln_plots = function(cell_type, genotype, genotype_gene_list, use_cell_type = FALSE) {
+  cell_type_agg_data = get_cell_type_data_for_clumping(cell_type)
+  
+  genotype_agg_sce = cell_type_agg_data[, cell_type_agg_data$GROUP %in% c(genotype, "none")] 
+
+  genotype_gene_data = genotype_agg_sce@assays@data$counts[genotype_gene_list,] %>% t() %>% as.data.frame()
+  genotype_gene_data$GROUP = colData(genotype_agg_sce)$GROUP
+  genotype_gene_data$GROUP[genotype_gene_data$GROUP == "none"] = "Control"
+  genotype_gene_data$GROUP = factor(genotype_gene_data$GROUP, levels = c("Control", "TET2", "DNMT3A"))
+  
+  render_vln_plot = function(gene) {
+    vln_plot = ggplot(genotype_gene_data, aes(x = GROUP, y = get(gene), fill = GROUP)) +
+      geom_violin() +
+      ylab("Expression Level") +
+      xlab("") +
+      theme_classic() +
+      theme(legend.title = element_blank(), plot.title = element_text(hjust = 0.5, face = "bold")) +
+      scale_fill_manual(values = c("grey", ifelse(genotype == "TET2", brewer.pal(6, "Paired")[4], brewer.pal(6, "Paired")[6]))) +
+      ggtitle(paste(ifelse(use_cell_type, cell_type, ""), gene))
+    save_plot(vln_plot, paste0("figures/violins/", gsub("\\+", "", cell_type), "_", genotype, "_", gene, "_violin"), height = 3, width = 3)
+    print(vln_plot)
+    }
+    
+  lapply(genotype_gene_list, render_vln_plot)
+}
+
+
+make_vln_plots(cell_type = "CD14 Monos", genotype = "TET2", genotype_gene_list = c("AIF1", "CXCL3", "FCER2", "MNDA", "FN1"))
+make_vln_plots("CD14 Monos", "DNMT3A", c("MNDA", "IFITM2", "ADGRE5"))
+
+cd4_tet_genes = read_tsv("tables/metacells_de_cell_types/CD4+ T cells_TET2_vs_none.tsv") %>% head(30) %>% pull(gene)
+cd4_dnmt3a_genes = read_tsv("tables/metacells_de_cell_types/CD4+ T cells_DNMT3A_vs_none.tsv") %>% head(30) %>% pull(gene)
+cd8_tet_genes = read_tsv("tables/metacells_de_cell_types/CD8+ T cells_TET2_vs_none.tsv") %>% head(30) %>% pull(gene)
+cd8_dnmt3a_genes = read_tsv("tables/metacells_de_cell_types/CD8+ T cells_DNMT3A_vs_none.tsv") %>% head(30) %>% pull(gene)
+
+make_vln_plots(cell_type = "CD4+ T cells", genotype = "TET2", genotype_gene_list = cd4_tet_genes)
+make_vln_plots(cell_type = "CD4+ T cells", genotype = "DNMT3A", genotype_gene_list = cd4_dnmt3a_genes)
+make_vln_plots(cell_type = "CD8+ T cells", genotype = "TET2", genotype_gene_list = cd8_tet_genes)
+make_vln_plots(cell_type = "CD8+ T cells", genotype = "DNMT3A", genotype_gene_list = cd8_dnmt3a_genes)
+
+
+make_vln_plots(cell_type = "CD4+ T cells", genotype = "TET2", genotype_gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"), use_cell_type = TRUE)
+make_vln_plots(cell_type = "CD4+ T cells", genotype = "DNMT3A", genotype_gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"), use_cell_type = TRUE)
+make_vln_plots(cell_type = "CD8+ T cells", genotype = "TET2", genotype_gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"), use_cell_type = TRUE)
+make_vln_plots(cell_type = "CD8+ T cells", genotype = "DNMT3A", genotype_gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"), use_cell_type = TRUE)
+
+```
+
+```{r}
+library(scater)
+library(RColorBrewer)
+
+get_summary_stats = function(cell_type, gene_list) {
+  cell_type_agg_data = get_cell_type_data_for_clumping(cell_type)
+  
+  gene_data = cell_type_agg_data@assays@data$counts[gene_list,] %>% t() %>% as.data.frame()
+  gene_data$GROUP = colData(cell_type_agg_data)$GROUP
+  gene_data$GROUP[gene_data$GROUP == "none"] = "Control"
+  gene_data$GROUP = factor(gene_data$GROUP, levels = c("Control", "TET2", "DNMT3A"))
+  gene_data$cell_type = cell_type
+
+  gene_data = pivot_longer(gene_data, cols = all_of(gene_list), names_to = "Gene", values_to = "Count")
+
+  
+  return(gene_data)
+}
+
+
+cd4_data = get_summary_stats(cell_type = "CD4+ T cells", gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"))
+cd8_data = get_summary_stats(cell_type = "CD8+ T cells", gene_list = c("GIMAP1", "GIMAP2", "GIMAP4", "GIMAP5", "GIMAP6", "GIMAP7"))
+cd14_data = get_summary_stats(cell_type = "CD14 Monos", gene_list = c("FN1", "FCER2", "IFITM2", "ADGRE5"))
+
+summary_data = rbind(cd4_data, cd8_data, cd14_data) %>%
+  group_by(cell_type, Gene, GROUP) %>%
+  summarize(Mean = mean(Count), SD = sd(Count))
+```
+

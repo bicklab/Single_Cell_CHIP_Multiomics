@@ -83,25 +83,26 @@ save_plot = function(plot, file, legend = TRUE, width = 4, height = 4, png = FAL
 }
 
 
-generate_pathway_plots = function(path_to_rds, title) {
+generate_pathway_plots = function(path_to_rds, title, sample_genotype, show_category = 4) {
   # Read in data.
   gse = readRDS(path_to_rds)
-  
+  colors = ifelse(sample_genotype == "TET2", format_colors_desc_tet2, format_colors_desc_dnmt3a)
+
   tryCatch({
     # Make plots.
-    split_plot = dotplot(gse, showCategory = 4, split = ".sign") +
+    split_plot = dotplot(gse, showCategory = show_category, split = ".sign") +
         ggtitle(paste(title, "enriched pathways")) +
         facet_grid(.~.sign) +
-        scale_color_gradient(low = sunset_colors[9], high = sunset_colors[6])
+        colors
     plot = dotplot(gse) +
         ggtitle(paste(title, "enriched pathways")) +
-        scale_color_gradient(low = sunset_colors[9], high = sunset_colors[6])
+        colors
     
     # Make filename.
     split_filename = paste0("figures/pathway_analysis_cell_types/gsea_split_dotplot_", gsub("\\+", "", gsub(" ", "_", title)))
     
     # Save plot.
-    save_plot(split_plot, split_filename, height = 6.5, width = 7)
+    save_plot(split_plot, split_filename, height = 4, width = 5)
   }, error = function(cond) {
     message(cond)
     return("Error rendering plot.")
@@ -112,14 +113,16 @@ generate_pathway_plots = function(path_to_rds, title) {
 ```
 
 ```{r}
-generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD14 Monos_gse.rds", "TET2 CD14+ monocytes")
-generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD14 Monos_gse.rds", "DNMT3A CD14+ monocytes")
+generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD14 Monos_gse.rds", "TET2 CD14+ monocytes", "TET2", show_category = c("ribonucleoprotein complex biogenesis", "regulation of cell activation", "leukocyte activation", "leukocyte activation", "regulation of leukocyte activation"))
+generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD14 Monos_gse.rds", "DNMT3A CD14+ monocytes", "DNMT3A", show_category = c("cell activation", "leukocyte activation", "regulation of leukocyte activation", "regulation of cell activation"))
 
-generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD8+ T cells_gse.rds", "TET2 CD8+ T cells")
-generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD8+ T cells_gse.rds", "DNMT3A CD8+ T cells")
 
-generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD4+ T cells_gse.rds", "TET2 CD4+ T cells")
-generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD4+ T cells_gse.rds", "DNMT3A CD4+ T cells")
+
+generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD8+ T cells_gse.rds", "TET2 CD8+ T cells", "TET2", show_category = c("response to virus", "response to cytokine", "defense response to virus", "defense response to symbiont"))
+generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD8+ T cells_gse.rds", "DNMT3A CD8+ T cells", "DNMT3A", show_category = c("cell differentiation", "regulation of transcription by RNA polymerase II", "cellular developmental process", "response to abiotic stimulus"))
+
+generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD4+ T cells_gse.rds", "TET2 CD4+ T cells", "TET2", show_category = c("myeloid leukocyte migration", "extracellular region", "inflammatory response", "defense response"))
+generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD4+ T cells_gse.rds", "DNMT3A CD4+ T cells", "DNMT3A", show_category = c("response to lipopolysaccharide", "response to molecule of bacterial origin", "response to abiotic stimulus", "positive regulation of cell death"))
 
 
 ```

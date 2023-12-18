@@ -60,9 +60,10 @@ format_add_arrows = list(
     axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank()),
   Seurat::NoAxes(),
   ggplot2::annotate(x=-16, xend=-16, y=-16, yend=-8, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
-  ggplot2::annotate(x=-16, xend=-11, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
-  ggplot2::annotate("text", label="UMAP 1", x=-17, -13, size = 4, angle = 90),
-  ggplot2::annotate("text", label="UMAP 2", x=-14, y=-18, size = 4))
+  ggplot2::annotate(x=-16.15, xend=-9, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
+  ggplot2::annotate("text", label="UMAP 2", x=-17, -13, size = 3, angle = 90),
+  ggplot2::annotate("text", label="UMAP 1", x=-14, y=-17.2, size = 3))
+
 
 # Just arrows, no color
 format_add_just_arrows = list(
@@ -77,9 +78,9 @@ format_add_just_arrows = list(
     axis.text = ggplot2::element_blank(), axis.ticks = ggplot2::element_blank()),
   Seurat::NoAxes(),
   ggplot2::annotate(x=-16, xend=-16, y=-16, yend=-8, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
-  ggplot2::annotate(x=-16, xend=-11, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
-  ggplot2::annotate("text", label="UMAP 1", x=-17, -13, size = 4, angle = 90),
-  ggplot2::annotate("text", label="UMAP 2", x=-14, y=-18, size = 4))
+  ggplot2::annotate(x=-16.15, xend=-9, y=-16, yend=-16, colour="black", lwd=1, geom="segment", arrow = ggplot2::arrow(length = ggplot2::unit(0.1, "inches"))),
+  ggplot2::annotate("text", label="UMAP 2", x=-17, -13, size = 3, angle = 90),
+  ggplot2::annotate("text", label="UMAP 1", x=-14, y=-17.2, size = 3))
 
 
 # Arrows 2 -----------------------------------------------------------------

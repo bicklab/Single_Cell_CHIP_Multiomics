@@ -1,6 +1,6 @@
 ---
 title: "Manual celltype assignment"
-output: html_notebook
+output: html_document
 ---
 
 # Set up.

@@ -4,7 +4,7 @@ output: html_document
 date: '2023-03-24'
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 source("../scripts/image_formatting.R")
@@ -13,24 +13,23 @@ library(tidyverse)
 
 output_dir = "figures/pathway_analysis_mut/"
 output_dir_all = "figures/pathway_analysis_mut_all/"
+organism = "org.Hs.eg.db"
 
+library(organism, character.only = TRUE)
 ```
 
 ```{r}
-# Load cluster profiler input
-
-organism = "org.Hs.eg.db"
-library(organism, character.only = TRUE)
-
-find_pathways = function(folder, input_file, sample_genotype, use_cutoff = TRUE) {
+find_pathways = function(folder, input_file, use_cutoff = TRUE) {
   
   exp_data = read_csv(paste0(folder, input_file))
-
+  title = gsub("\\.", "", substr(input_file, 1 , nchar(input_file)-3))
+  
   # format gene list
   gene_list = exp_data %>%
-    dplyr::select(gene, logFC) %>%
-    dplyr::arrange(desc(logFC)) %>%
-    tibble::deframe()
+    dplyr::select(primerid, coef) %>%
+    dplyr::arrange(desc(coef)) %>%
+    tibble::deframe() %>%
+    na.omit()
   
   # written with trycatch to avoid errors with empty lists
   tryCatch({
@@ -38,77 +37,77 @@ find_pathways = function(folder, input_file, sample_genotype, use_cutoff = TRUE)
     gse = gseGO(geneList = gene_list, keyType = "SYMBOL", OrgDb = organism, ont = "ALL", minGSSize = 50, maxGSSize = 800, pvalueCutoff = ifelse(use_cutoff, 0.05, 1), nPermSimple = 10000)
     gse_all = gseGO(geneList = gene_list, keyType = "SYMBOL", OrgDb = organism, ont = "ALL", minGSSize = 2, maxGSSize = 800, pvalueCutoff = ifelse(use_cutoff, 0.05, 1), nPermSimple = 10000)
 
-    colors = ifelse(sample_genotype == "TET2", format_colors_desc_tet2, format_colors_desc_dnmt3a)
     
-    title = gsub("\\.", "", substr(input_file, 1 , nchar(input_file)-3))
-    split_plot = dotplot(gse, showCategory = 5, split = ".sign") +
-        colors + 
-        ggtitle(title) +
-        facet_grid(.~.sign)
-    plot = dotplot(gse) +
-        colors + 
-        ggtitle(title)
+    gse_filename = paste0("tables/gse_results_mut/", gsub(" ", "_", title), ifelse(use_cutoff, "", "_no_cutoff"), "_gse.rds")
+    saveRDS(gse, gse_filename)
     
-    split_plot_all = dotplot(gse_all, showCategory = 5, split = ".sign") +
-        colors + 
-        ggtitle(title) +
-        facet_grid(.~.sign)
-    plot_all = dotplot(gse_all) +
-        colors + 
-        ggtitle(title)
-    
-    
-    # save plots
-    filename = paste0(output_dir, "dotplot_", gsub(" ", "_", title))
-    split_filename = paste0(output_dir, "split_dotplot_", gsub(" ", "_", title))
-
-    filename_all = paste0(output_dir_all, "dotplot_", gsub(" ", "_", title), "_all")
-    split_filename_all = paste0(output_dir_all, "split_dotplot_", gsub(" ", "_", title), "_all")
-    
-    save_plot(split_plot, split_filename, height = 6.5, width = 7)
-    save_plot(plot, filename, height = 6.5, width = 6)
-    
-    save_plot(split_plot_all, split_filename_all, height = 6.5, width = 7)
-    save_plot(plot_all, filename_all, height = 6.5, width = 6)
-
-    
-    gse_filename = paste0("tables/gse_results_mut/", gsub(" ", "_", title), ifelse(use_cutoff, "", "_no_cutoff"), "_gse.tsv")
-    write_tsv(gse@result, gse_filename)
-    
-    gse_filename_all = paste0("tables/gse_results_mut_all/", gsub(" ", "_", title), ifelse(use_cutoff, "", "_no_cutoff"), "_gse_all.tsv")
-    write_tsv(gse_all@result, gse_filename_all)
+    gse_filename_all = paste0("tables/gse_results_mut_all/", gsub(" ", "_", title), ifelse(use_cutoff, "", "_no_cutoff"), "_gse_all.rds")
+    saveRDS(gse_all, gse_filename_all)
 
   }, error = function(cond) {
     message(cond)
-    return("Error rendering plot.")
+    return("Error.")
   })
 }
 
 ```
 
-```{r}
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "B DNMT3A Mutant vs. WT.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "B TET2 Mutant vs. WT.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD4 DNMT3A Mutant vs. WT.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD4 TET2 Mutant vs. WT.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD8 DNMT3A Mutant vs. WT.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD8 TET2 Mutant vs. WT.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD14 DNMT3A Mutant vs. WT.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "CD14 TET2 Mutant vs. WT.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "NK DNMT3A Mutant vs. WT.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_wildtype/", input_file = "NK TET2 Mutant vs. WT.csv", sample_genotype = "TET2")
 
+```{r}
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A B Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 B Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A CD4 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 CD4 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A CD8 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 CD8 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A CD14 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 CD14 Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A NK Mutant vs Control.csv")
+find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 NK Mutant vs Control.csv")
+
+# only TET2 CD14s and CD8s ran, only CD14 had enriched terms
 ```
-```{r}
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "B DNMT3A Mutant vs. Control.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "B TET2 Mutant vs. Control.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD4 DNMT3A Mutant vs. Control.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD4 TET2 Mutant vs. Control.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD8 DNMT3A Mutant vs. Control.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD8 TET2 Mutant vs. Control.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD14 DNMT3A Mutant vs Control.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "CD14 TET2 Mutant vs Control.csv", sample_genotype = "TET2")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "NK DNMT3A Mutant vs. Control.csv", sample_genotype = "DNMT3A")
-find_pathways(folder = "tables/pooled_mutant_vs_control/", input_file = "NK TET2 Mutant vs. Control.csv", sample_genotype = "TET2")
 
+# Generate plots.
+```{r}
+
+save_plot = function(plot, file, legend = TRUE, width = 4, height = 4, png = FALSE) {
+  if (png) { ggsave(plot = plot, filename =  paste0(file, ".png"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in') }
+  ggsave(plot = plot, filename =  paste0(file, ".pdf"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in')
+}
+
+
+generate_pathway_plots = function(path_to_rds, title, sample_genotype, show_category = 4) {
+  # Read in data.
+  gse = readRDS(path_to_rds)
+  colors = ifelse(sample_genotype == "TET2", format_colors_desc_tet2, format_colors_desc_dnmt3a)
+  
+  tryCatch({
+    # Make plots.
+    split_plot = dotplot(gse, showCategory = show_category, split = ".sign") +
+        ggtitle(paste(title, "enriched pathways")) +
+        facet_grid(.~.sign) +
+        colors
+    plot = dotplot(gse) +
+        ggtitle(paste(title, "enriched pathways")) +
+        colors
+    
+    # Make filename.
+    split_filename = paste0("figures/pathway_analysis_cell_types/gsea_split_dotplot_", gsub("\\+", "", gsub(" ", "_", title)))
+    
+    # Save plot.
+    save_plot(split_plot, split_filename, height = 4, width = 5)
+  }, error = function(cond) {
+    message(cond)
+    return("Error rendering plot.")
+  })
+  
+  
+}
+```
+
+```{r}
+generate_pathway_plots("tables/gse_results_mut/TET2_CD14_Mutant_vs_Control_gse.rds", "TET2 mutant CD14+ monocytes vs control monocytes", "TET2", show_category = c("positive regulation of leukocyte activation", "positive regulation of cell activation", "regulation of leukocyte activation", "leukocyte cell-cell adhesion"))
+
+generate_pathway_plots("tables/gse_results_mut/DNMT3A_CD14_Mutant_vs_Control_gse.rds", "DNMT3A mutant CD14+ monocytes vs control monocytes", "DNMT3A", show_category = c("positive regulation of cell death", "response to bacterium", "leukocyte migration", "innate immune response"))
 ```

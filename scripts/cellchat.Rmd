@@ -61,17 +61,17 @@ veh_seurat_trimmed_tet2 = veh_seurat_trimmed.list$TET2
 veh_seurat_trimmed_dnmt3a = veh_seurat_trimmed.list$DNMT3A
 veh_seurat_trimmed_control = veh_seurat_trimmed.list$none
 
-veh_cc_tet2 = create_cc(veh_seurat_trimmed_tet2, 3, "rds_objects/veh_cc_control.rds")
-veh_cc_dnmt3a = create_cc(veh_seurat_trimmed_dnmt3a, 3, "rds_objects/veh_cc_tet2.rds")
-veh_cc_control = create_cc(veh_seurat_trimmed_control, 3, "rds_objects/veh_cc_dnmt3a.rds")
+veh_cc_tet2 = create_cc(veh_seurat_trimmed_tet2, 3, "rds_objects/cellchat/veh_cc_tet2.rds")
+veh_cc_dnmt3a = create_cc(veh_seurat_trimmed_dnmt3a, 3, "rds_objects/cellchat/veh_cc_dnmt3a.rds")
+veh_cc_control = create_cc(veh_seurat_trimmed_control, 3, "rds_objects/cellchat/veh_cc_control.rds")
 
 ```
 
 
 ```{r}
-veh_cc_control = readRDS("rds_objects/veh_cc_control.rds")
-veh_cc_tet2 = readRDS("rds_objects/veh_cc_tet2.rds")
-veh_cc_dnmt3a = readRDS("rds_objects/veh_cc_dnmt3a.rds")
+veh_cc_control = readRDS("rds_objects/cellchat/veh_cc_control.rds")
+veh_cc_tet2 = readRDS("rds_objects/cellchat/veh_cc_tet2.rds")
+veh_cc_dnmt3a = readRDS("rds_objects/cellchat/veh_cc_dnmt3a.rds")
 ```
 
 
@@ -83,34 +83,62 @@ tet2_merged_cc = updateCellChat(tet2_merged_cc)
 dnmt3a_cc.list = list(DNMT3A = veh_cc_dnmt3a, Control = veh_cc_control)
 dnmt3a_merged_cc = mergeCellChat(dnmt3a_cc.list, add.names = names(dnmt3a_cc.list))
 dnmt3a_merged_cc = updateCellChat(dnmt3a_merged_cc)
-
-all_cc.list = list(TET2 = veh_cc_tet2, DNMT3A = veh_cc_dnmt3a, Control = veh_cc_control)
-all_merged_cc = mergeCellChat(all_cc.list, add.names = names(all_cc.list))
-all_merged_cc = updateCellChat(all_merged_cc)
 ```
 
 ```{r}
 (tet2_cd14_cc_bar = rankNet(tet2_merged_cc, mode = "comparison", comparison = c(1,2), sources.use = "CD14+ Monocytes", signaling = c("IL1", "IL6", "SELPLG", "ITGB2", "PECAM1", "MIF", "GALECTIN"), do.stat = TRUE))
 (dnmt3a_cd14_cc_bar = rankNet(dnmt3a_merged_cc, mode = "comparison", comparison = c(1,2), sources.use = "CD14+ Monocytes", signaling = c("IL1", "IL6", "SELPLG", "ITGB2", "PECAM1", "MIF", "GALECTIN"), do.stat = TRUE))
 
-# signaling = c("MIF", "GALECTIN", "ITGB2", "ICAM", "THBS", "TGFb"), 
-
-rankNet(all_merged_cc, mode = "comparison", comparison = c(1,2,3), sources.use = "CD8+ T cells", signaling = "MIF")
-
-signaling = c("IL1", "IL6", "SELPLG", "ITGB2", "PECAM1", "MIF", "GALECTIN")
-
 
 ```
 
 
 ```{r}
-# Titles do not output
+make_heat_plot = function(heat, cell_type, sample_genotype, num_pathways) {
+  
+  heat = heat %>%
+    rowwise() %>%
+    mutate(name = paste0(ifelse(pvalues < 0.05 / num_pathways, "*", ""), name))
+  ggplot(heat, aes(name, group, fill = contribution.scaled)) + 
+  geom_tile() + 
+  scale_fill_gradient(low = "snow2", 
+                      high = ifelse(sample_genotype == "TET2", brewer.pal(6, "Paired")[4], brewer.pal(6, "Paired")[6]),
+                      breaks = c(min(heat$contribution.scaled), max(heat$contribution.scaled)),
+                      labels = c("Low","High")) +  
+  xlab("") +
+  ylab("") +
+  ggtitle(paste("Outgoing", gsub("Mo", "mo", cell_type), "signaling")) + 
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
+}
 
-netVisual_diffInteraction(tet2_merged_cc, title.name = "TET2 CD14+ Monocytes Outgoing Differential Signaling", weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = brewer.pal(4, "Paired")[c(4,2)])
-netVisual_diffInteraction(dnmt3a_merged_cc, title.name = "DNMT3A CD14+ Monocytes Outgoing Differential Signaling",weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = brewer.pal(4, "Paired")[c(4,2)])
+(tet2_cd14_heat = make_heat_plot(tet2_cd14_cc_bar$data, "CD14+ Monocytes", "TET2", num_pathways = 7))
+(dnmt3a_cd14_heat = make_heat_plot(dnmt3a_cd14_cc_bar$data, "CD14+ Monocytes", "DNMT3A", num_pathways = 7))
+ 
+save_plot(tet2_cd14_heat, "figures/cellchat/tet2_cd14_heat", height = 2, width = 5)
+save_plot(dnmt3a_cd14_heat, "figures/cellchat/dnmt3a_cd14_heat", height = 2, width = 5)
 
-netVisual_diffInteraction(tet2_merged_cc, title.name = "TET2 CD4+ T Cells Outgoing Differential Signaling", weight.scale = T, measure = "weight", sources.use = c("CD4+ T cells"), targets.use = c("CD8+ T cells", "CD14+ Monocytes", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = brewer.pal(4, "Paired")[c(4,2)])
-netVisual_diffInteraction(dnmt3a_merged_cc, title.name = "DNMT3A CD4+ T Cells Outgoing Differential Signaling", weight.scale = T, measure = "weight", sources.use = c("CD4+ T cells"), targets.use = c("CD8+ T cells", "CD14+ Monocytes", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = brewer.pal(4, "Paired")[c(4,2)])
+```
+
+
+
+
+
+
+```{r}
+
+(tet2_circle_plot = netVisual_diffInteraction(tet2_merged_cc, comparison = c("Control", "TET2"), weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = c( brewer.pal(4, "Paired")[4], "grey")))
+
+
+(dnmt3a_circle_plot = netVisual_diffInteraction(dnmt3a_merged_cc, comparison = c("Control", "DNMT3A"), weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = c( brewer.pal(6, "Paired")[6], "grey")))
+
+pdf("figures/cellchat/tet2_circle.pdf", width = 4, height = 4)
+tet2_circle_plot
+dev.off()
+
+pdf("figures/cellchat/dnmt3a_circle.pdf", width = 4, height = 4)
+dnmt3a_circle_plot
+dev.off()
 
 ```
 
