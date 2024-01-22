@@ -1,0 +1,114 @@
+---
+title: "metacells2"
+output: html_document
+date: "2024-01-03"
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
+
+library(tidyverse)
+library(Seurat)
+library(DESeq2)
+library(SingleCellExperiment)
+library(scuttle)
+#library(apeglm)
+```
+
+# Get counts.
+```{r}
+source("scripts/image_formatting.R")
+diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
+
+revision_seurat = subset(diet_seurat_trimmed, subset = MUTATION.GROUP == "TET2")
+revision_seurat$MUTATION.SUBGROUP = "placeholder"
+revision_seurat$MUTATION.SUBGROUP[revision_seurat$MUTATION %in% c("TET2 V1900F (2%)", "TET2 G68X (2%)", "TET2 (33%)", "TET2 (6.2%)", "TET2 C1378Y (23%)")] = "TET2"
+revision_seurat$MUTATION.SUBGROUP[revision_seurat$MUTATION %in% c("TET2 R1516X (30%), TET2 Q659X (29%), SRSF2 P95H (3%)", "SRSF2 P95R (40%), TET2 L957Ifs*15 (51%)", "SRSF2 (33%), TET2 Y1245Lfs*22 (27%), TET2 Q742X(42%)")] = "TET2_SRSF2"
+revision_seurat$Cell_Type_Group = paste(revision_seurat$cell_type, revision_seurat$MUTATION.SUBGROUP, revision_seurat$STIM)
+
+revision_seurat = subset(revision_seurat, subset = cell_type == "CD14 Monos")
+counts = revision_seurat@assays$RNA
+
+```
+
+# Functions for differential expression.
+```{r}
+clump = function(agg_sce, label1, label2, cell_type) {
+    agg_sce = agg_sce[, agg_sce$MUTATION.SUBGROUP %in% c(label1, label2)] # Subset on group of interest.
+
+    metadata = colData(agg_sce)[,c("MUTATION.SUBGROUP", "metacell")]
+    metadata$CHIP = factor(metadata$MUTATION.SUBGROUP, levels = c(label2, label1)) # Establish to get the order we want.
+    
+    dds = DESeqDataSetFromMatrix(round(assay(agg_sce, "counts")), 
+                    colData = metadata, 
+                    design = ~ MUTATION.SUBGROUP)
+    
+    smallest_group_sample_size = min(sum(metadata$CHIP == label1), sum(metadata$CHIP == label2))
+    
+    keep = rowSums(counts(dds) >= 10) >= nrow(metadata) * 0.85 # at least 85% of metacells have at least 10 transcripts
+    dds = dds[keep,]
+    dds = DESeq(dds)
+    
+    res = results(dds, contrast = c("MUTATION.SUBGROUP", label1, label2))
+
+    summary(res)
+    res_ordered_wald = res[order(res$padj),] %>%
+      as.data.frame() %>%
+      filter(!is.na(padj)) %>%
+      rownames_to_column("gene")
+    
+    # Remove hemoglobin and X biased genes.
+    remove_list = c("DDX3Y", "HBB", "HBA1", "HBD", "HBZ", "HBG2", "HBG1", "HBG2", "CYB5R3", "HBE1", "HBM", "HBQ1", "XIST", "UTY", "USP9Y", res_ordered_wald$gene[grep("MRP", res_ordered_wald$gene)])
+    
+    filtered_data = res_ordered_wald %>%
+      filter(!gene %in% remove_list)
+  
+    write_tsv(filtered_data, paste0("tables/metacells_de_cell_types_revision/", cell_type, "_", label1, "_vs_", label2, ".tsv"))
+    return(filtered_data)
+}
+
+
+get_cell_type_data_for_clumping = function(cell_type_name) {
+  lower_cell_type_name = gsub(" ", "_", tolower(cell_type_name))
+  tet2_cell_type_metadata = read_csv(paste0("metacells_files_revision/", lower_cell_type_name, "_tet2_veh_metacells.csv")) %>%
+    mutate(MUTATION.SUBGROUP = "TET2")
+  tet2_srsf2_cell_type_metadata = read_csv(paste0("metacells_files_revision/", lower_cell_type_name, "_tet2_srsf2_veh_metacells.csv")) %>%
+    mutate(MUTATION.SUBGROUP = "TET2_SRSF2")
+
+  cell_type_metadata = rbind(tet2_cell_type_metadata, tet2_srsf2_cell_type_metadata) %>%
+    dplyr::rename(Cell_ID = `...1`) %>%
+    filter(metacell >= 0) %>% # negative metacell assignments given to outliers
+    filter(Cell_ID %in% colnames(counts@counts))
+    
+  cell_type_counts = counts@counts[,cell_type_metadata$Cell_ID] # this syntax changes for seurat v4 and seurat v5 (counts vs counts@counts)
+  rownames(cell_type_metadata) = cell_type_metadata$Cell_ID
+
+  cell_type_sce = SingleCellExperiment(cell_type_counts, colData = cell_type_metadata)
+  assayNames(cell_type_sce) = "counts"
+
+  cell_type_agg_sce = aggregateAcrossCells(cell_type_sce, ids = colData(cell_type_sce)[,c("MUTATION.SUBGROUP", "metacell")])
+  return(cell_type_agg_sce)
+}
+
+
+```
+
+
+# Run differential expression.
+```{r}
+run_chip_comparisons = function(cell_type_name) {
+
+  agg_cell_type_data = get_cell_type_data_for_clumping(cell_type_name)
+
+  tryCatch({
+    tet2_comparison = clump(agg_cell_type_data, label1 = "TET2", label2 = "TET2_SRSF2", cell_type = cell_type_name) 
+  }, error = function(cond) {
+    message("TET2 comparison failed.")
+  })
+}
+
+run_chip_comparisons("CD14 Monos")
+
+
+```
+

@@ -17,11 +17,13 @@ import scanpy
 from math import hypot
 from matplotlib.collections import LineCollection
 
-def run_metacells(group_name, target_metacell_size=160000):
-    # print(os.getcwd())
-    # os.chdir("Alyssa/Single_Cell_CHIP")
+
+print(os.getcwd())
+os.chdir("Alyssa/Single_Cell_CHIP")
     
-    group_data = scanpy.read_10x_mtx("demultiplexed_cell_types/" + group_name)
+def run_metacells(group_name, target_metacell_size=160000):
+
+    group_data = scanpy.read_10x_mtx("demultiplexed_cell_types_revision/" + group_name)
     mc.ut.set_name(group_data, "PBMC") #just sets a variable name
     
     excluded_gene_names = ['IGHMBP2', 'IGLL1', 'IGLL5', 'IGLON5', 'NEAT1', 'TMSB10', 'TMSB4X']
@@ -93,9 +95,9 @@ def run_metacells(group_name, target_metacell_size=160000):
                                           random_seed=123456,
                                           target_metacell_size=target_metacell_size)
 
-    clean.obs["metacell"].to_csv("metacells_files/" + group_name.lower().replace(" ", "_") + "_metacells.csv")
+    clean.obs["metacell"].to_csv("metacells_files_revision/" + group_name.lower().replace(" ", "_") + "_metacells.csv")
 
-    
+
 
 # run_metacells("NK DNMT3A VEH")
 # run_metacells("NK TET2 VEH")
@@ -104,4 +106,7 @@ def run_metacells(group_name, target_metacell_size=160000):
 run_metacells("B DNMT3A VEH")
 # run_metacells("B TET2 VEH")
 # run_metacells("B none VEH")
+
+run_metacells("CD14 Monos TET2 VEH")
+run_metacells("CD14 Monos TET2_SRSF2 VEH")
 

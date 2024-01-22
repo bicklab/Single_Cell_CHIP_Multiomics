@@ -11,15 +11,13 @@ library(org.Hs.eg.db)
 library(ggplot2)
 library(khroma)
 library(tidyverse)
-
 ```
-
 
 ```{r}
-sunset = color("sunset")
-sunset_colors = rep(sunset(9) %>% unname(), 3)
+source("scripts/image_formatting.R")
 
 ```
+
 
 # Function for pathway analysis.
 ```{r}
@@ -125,5 +123,113 @@ generate_pathway_plots("rds_objects/gse_cell_types/TET2_CD4+ T cells_gse.rds", "
 generate_pathway_plots("rds_objects/gse_cell_types/DNMT3A_CD4+ T cells_gse.rds", "DNMT3A CD4+ T cells", "DNMT3A", show_category = c("response to lipopolysaccharide", "response to molecule of bacterial origin", "response to abiotic stimulus", "positive regulation of cell death"))
 
 
+```
+
+
+# REVISION 
+
+# Function for pathway analysis.
+```{r}
+find_pathways = function(cell_type_name, sample_genotype) {
+  # Get file.
+  folder = "tables/metacells_de_cell_types_revision/"
+  regex_cell_type_name = gsub("\\+", "\\\\+", cell_type_name)
+  pattern = paste0("^", regex_cell_type_name, "_", sample_genotype, ".*")
+  print(pattern)
+
+  input_filename = list.files(folder, pattern)
+  if (length(input_filename) == 0) {
+    return()
+  }
+  
+  # Load data.
+  exp_data = read_tsv(paste0(folder, input_filename))
+
+  gene_list = exp_data %>%
+    dplyr::select(gene, log2FoldChange) %>%
+    dplyr::arrange(desc(log2FoldChange)) %>%
+    tibble::deframe()
+  
+  tryCatch({  # Written with trycatch to avoid errors with empty lists.
+    
+    # Determine pathways.
+    gse = gseGO(geneList = gene_list, keyType = "SYMBOL", OrgDb = "org.Hs.eg.db", ont = "ALL", minGSSize = 50, maxGSSize = 800, nPermSimple = 10000)
+    gse_all = gseGO(geneList = gene_list, keyType = "SYMBOL", OrgDb = "org.Hs.eg.db", ont = "ALL", minGSSize = 2, maxGSSize = 800, nPermSimple = 10000)
+    
+    # Save files.
+    gse_filename = paste0("rds_objects/gse_cell_types_revision/", sample_genotype, "_", cell_type_name, "_gse.rds")
+    saveRDS(gse, gse_filename)
+    
+    gse_filename_all = paste0("rds_objects/gse_cell_types_revision/", sample_genotype, "_", cell_type_name, "_gse_all.rds")
+    saveRDS(gse_all, gse_filename_all)
+
+  }, error = function(cond) {
+    message(cond)
+    return("Error determining pathways.")
+  })
+}
+
+
+```
+
+
+```{r}
+
+cell_types = c("CD14 Monos")
+lapply(cell_types, find_pathways, "TET2")
+
+```
+
+# Generate plots.
+```{r}
+
+save_plot = function(plot, file, legend = TRUE, width = 4, height = 4, png = FALSE) {
+  if (png) { ggsave(plot = plot, filename =  paste0(file, ".png"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in') }
+  ggsave(plot = plot, filename =  paste0(file, ".pdf"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in')
+}
+
+
+generate_pathway_plots = function(path_to_rds, title, sample_genotype, show_category = 4) {
+  # Read in data.
+  gse = readRDS(path_to_rds)
+  colors = ifelse(sample_genotype == "TET2", format_colors_desc_tet2, format_colors_desc_dnmt3a)
+
+  tryCatch({
+    # Make plots.
+    split_plot = dotplot(gse, showCategory = show_category, split = ".sign") +
+        ggtitle(paste(title, "enriched pathways")) +
+        facet_grid(.~.sign) +
+        colors
+    plot = dotplot(gse) +
+        ggtitle(paste(title, "enriched pathways")) +
+        colors
+    
+    # Make filename.
+    split_filename = paste0("figures/pathway_analysis_cell_types_revision/gsea_split_dotplot_", gsub("\\+", "", gsub(" ", "_", title)))
+    
+    # Save plot.
+    save_plot(split_plot, split_filename, height = 4, width = 5)
+  }, error = function(cond) {
+    message(cond)
+    return("Error rendering plot.")
+  })
+  
+  
+}
+```
+
+```{r}
+generate_pathway_plots("rds_objects/gse_cell_types_revision/TET2_CD14 Monos_gse.rds", "TET2_SRSF2 vs TET2 CD14+ monocytes", "TET2")
+
+```
+
+
+
+```{r}
+gse_table = readRDS("rds_objects/gse_cell_types_revision/TET2_CD14 Monos_gse.rds")
+
+filtered_gse_table = gse_table@result %>%
+  dplyr::select(ID, Description, p.adjust, core_enrichment)
+write_tsv(filtered_gse_table, "tables/gse_tet2_srsf2.tsv")
 ```
 
