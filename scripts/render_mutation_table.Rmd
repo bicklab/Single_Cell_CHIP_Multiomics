@@ -57,12 +57,9 @@ mutation_table_long = mutation_names %>%
   full_join(variant_data)
 
 write.xlsx(mutation_table_long, "../tables/supplemental/mutation_table_long.xlsx")
-
 ```
 
 ```{r grouped_clinical_data, echo = FALSE, results = 'asis'}
-
-
 table1(~ Sex + Race + Age + `Hx tobacco use` + `Hx CAD` + `Hx CHF` + `Systolic BP` + `Diastolic BP` + `Heart rate` | 
          MUTATION.GROUP, data = grouped_clinical_data %>%
          rename("Sex" = sex, "Race" = race, "Age" = age_initial_sample_collection, "Hx tobacco use" = former_smoker, 
@@ -71,6 +68,4 @@ table1(~ Sex + Race + Age + `Hx tobacco use` + `Hx CAD` + `Hx CHF` + `Systolic B
          overall = NULL,
          render.continuous = continuous_mean,
          render = rndr)
-
-
 ```

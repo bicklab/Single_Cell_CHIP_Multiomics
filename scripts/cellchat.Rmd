@@ -8,39 +8,28 @@ knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(Seurat)
 library(tidyverse)
+library(CellChat)
 
 source("../scripts/image_formatting.R")
 ```
 
+# Generate cellchat objects.
 ```{r}
-devtools::install_github("sqjin/CellChat")
-```
-
-```{r}
-library(CellChat)
-
-# Generate Cell Chat Objects 
 create_cc = function(seu_obj, nPatterns, output_path = "") {
-  # creating cellchat object from steps of tutorial 
   cellchat = createCellChat(object = seu_obj, meta = seu_obj@meta.data, group.by = "cell_type") 
   cellchat@DB = CellChatDB.human
-  #preprocessing
+
   cellchat = subsetData(cellchat)
   cellchat = identifyOverExpressedGenes(cellchat)
-  cellchat = identifyOverExpressedInteractions(cellchat) # Identify over-expressed ligand-receptor interactions (pairs) within the used CellChatDB
-  cellchat = projectData(cellchat, PPI.human) # A diffusion process is used to smooth genes’ expression values based on their neighbors’ defined in a high-confidence experimentally validated protein-protein network.
-  cellchat = computeCommunProb(cellchat, type = 'truncatedMean', trim = 0.1) # calculating the average gene expression by discarding 10% from each end of the data 
-  # Filter out the cell-cell communication if there are only few number of cells in certain cell groups
-  cellchat = filterCommunication(cellchat, min.cells = 25) # Filter cell-cell communication if there are only few number of cells in certain cell groups
-  cellchat = computeCommunProbPathway(cellchat) # Compute the communication probability on signaling pathway level by summarizing all related ligands/receptors
-  cellchat = aggregateNet(cellchat) # Calculate the aggregated network by counting the number of links or summarizing the communication probability
-  cellchat = netAnalysis_computeCentrality(cellchat, slot.name = "netP") # compute the network centrality scores allowing identification of dominant senders, receivers, mediators and influencers in all inferred communication networks 
-  #outgoing patterns
-  # selectK(cellchat, pattern = "outgoing") # ran before to determine best number for nPatterns 
-  #cellchat = identifyCommunicationPatterns(cellchat, pattern = "outgoing", k = nPatterns)
-  #incoming patterns
-  # selectK(cellchat, pattern = "incoming")
-  #cellchat = identifyCommunicationPatterns(cellchat, pattern = "incoming", k = nPatterns)
+  cellchat = identifyOverExpressedInteractions(cellchat) 
+  cellchat = projectData(cellchat, PPI.human) 
+  cellchat = computeCommunProb(cellchat, type = 'truncatedMean', trim = 0.1)
+
+  cellchat = filterCommunication(cellchat, min.cells = 25) 
+  cellchat = computeCommunProbPathway(cellchat) 
+  cellchat = aggregateNet(cellchat) 
+  cellchat = netAnalysis_computeCentrality(cellchat, slot.name = "netP") 
+
   if (output_path != "") {
     saveRDS(cellchat, output_path)
   }
@@ -74,7 +63,6 @@ veh_cc_tet2 = readRDS("rds_objects/cellchat/veh_cc_tet2.rds")
 veh_cc_dnmt3a = readRDS("rds_objects/cellchat/veh_cc_dnmt3a.rds")
 ```
 
-
 ```{r}
 tet2_cc.list = list(TET2 = veh_cc_tet2, Control = veh_cc_control)
 tet2_merged_cc = mergeCellChat(tet2_cc.list, add.names = names(tet2_cc.list))
@@ -85,14 +73,9 @@ dnmt3a_merged_cc = mergeCellChat(dnmt3a_cc.list, add.names = names(dnmt3a_cc.lis
 dnmt3a_merged_cc = updateCellChat(dnmt3a_merged_cc)
 ```
 
-```{r}
-(tet2_cd14_cc_bar = rankNet(tet2_merged_cc, mode = "comparison", comparison = c(1,2), sources.use = "CD14+ Monocytes", signaling = c("IL1", "IL6", "SELPLG", "ITGB2", "PECAM1", "MIF", "GALECTIN"), do.stat = TRUE))
-(dnmt3a_cd14_cc_bar = rankNet(dnmt3a_merged_cc, mode = "comparison", comparison = c(1,2), sources.use = "CD14+ Monocytes", signaling = c("IL1", "IL6", "SELPLG", "ITGB2", "PECAM1", "MIF", "GALECTIN"), do.stat = TRUE))
 
 
-```
-
-
+# Make heat plots.
 ```{r}
 make_heat_plot = function(heat, cell_type, sample_genotype, num_pathways) {
   
@@ -124,7 +107,7 @@ save_plot(dnmt3a_cd14_heat, "figures/cellchat/dnmt3a_cd14_heat", height = 2, wid
 
 
 
-
+# Make circle plots.
 ```{r}
 
 (tet2_circle_plot = netVisual_diffInteraction(tet2_merged_cc, comparison = c("Control", "TET2"), weight.scale = T, measure = "weight", sources.use = c("CD14+ Monocytes"), targets.use = c("CD8+ T cells", "CD4+ T cells", "B cells", "NK cells", "CD16+ Monocytes", "Dendritic cells", "Erythroid-like cells", "Platelets"), color.use = rep("grey", 9), color.edge = c( brewer.pal(4, "Paired")[4], "grey")))

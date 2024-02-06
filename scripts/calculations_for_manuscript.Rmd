@@ -10,7 +10,7 @@ library(tidyverse)
 library(Seurat)
 ```
 
-# Number of control cells
+# Number of control cells.
 ```{r}
 diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
 
@@ -30,7 +30,7 @@ summarized_data = summarize_data(diet_seurat_trimmed, "MUTATION.GROUP")
 rowSums(summarized_data[,2:6])
 ```
 
-# Number of mutated cells and nonmutated cells
+# Number of mutated cells and nonmutated cells.
 ```{r}
 clone_data = readRDS("rds_objects/seurat_with_clones_5.11.23.rds")
 
@@ -47,7 +47,7 @@ clone_data_for_radar = clone_data@meta.data %>%
 
 ```
 
-
+# Statistical test for cell type proportions in aggregated cell types.
 ```{r}
 library(scProportionTest)
 
@@ -70,6 +70,7 @@ prop_test_dnmt3a = permutation_test(
 )
 permutation_plot(prop_test_dnmt3a)
 ```
+# Statistical test for cell type proportions in mutant and wildtype cells.
 ```{r}
 library(scProportionTest)
 

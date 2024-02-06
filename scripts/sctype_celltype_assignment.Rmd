@@ -9,11 +9,12 @@ knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 
 library(Seurat)
 library(tidyverse)
+library(harmony)
+
 ```
 
 # Get markers.
 ```{r}
-library(harmony)
 seurat_DF = readRDS("rds_objects/seurat_DF.rds")
 seurat_DF_Harmony_KEEP = readRDS("rds_objects/seurat_DF_Harmony_KEEP.rds")
 
@@ -112,7 +113,7 @@ sub_sctype_scores = sub_cL_results %>%
 View(sub_sctype_scores[,1:3])
 
 # set low-confident (low ScType score) clusters to "unknown" but choosing to ignore here because we are mainly interested in larger grouping (CD4, CD8, etc.)
-#sub_sctype_scores$type[as.numeric(as.character(sub_sctype_scores$scores)) < sub_sctype_scores$ncells/4] = "Unknown"
+# sub_sctype_scores$type[as.numeric(as.character(sub_sctype_scores$scores)) < sub_sctype_scores$ncells/4] = "Unknown"
 
 seurat_df_harmony_keep_0_75@meta.data$customclassif = ""
 for (j in unique(sub_sctype_scores$cluster)) {
@@ -148,7 +149,6 @@ DimPlot(cluster_5, reduction = "umap", label = TRUE, repel = TRUE, group.by = "s
 seurat_df_harmony_keep_0_75_no_doublets = subset(seurat_df_harmony_keep_0_75, subset = seurat_clusters == 5 & customclassif == "Classical Monocytes", invert = TRUE)
 ```
 
-
 # Save object.
 ```{r}
 saveRDS(seurat_df_harmony_keep_0_75_no_doublets, "rds_objects/seurat_df_harmony_keep_0_75_no_doublets.rds")
@@ -166,7 +166,6 @@ seurat_df_harmony_keep_0_75_no_doublets_metadata = seurat_df_harmony_keep_0_75_n
 
 write_tsv(seurat_df_harmony_keep_0_75_no_doublets_metadata, "tables/markers/integrated_seurat_metadata.tsv")
 ```
-
 
 # Remove mito and ribo genes.
 ```{r}

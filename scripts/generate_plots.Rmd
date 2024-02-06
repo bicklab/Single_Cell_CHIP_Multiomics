@@ -15,6 +15,7 @@ output_dir = "figures/"
 source("../scripts/image_formatting.R")
 ```
 
+# Load data.
 ```{r}
 scaled_filtered_annotated_seurat = readRDS("rds_objects/scaled_filtered_annotated_seurat.rds")
 diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
@@ -25,7 +26,6 @@ diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type 
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "NK"] = "NK cells"
 
 diet_seurat_trimmed@meta.data$MUTATION.GROUP[diet_seurat_trimmed@meta.data$MUTATION.GROUP == "none"] = "Control"
-
 ```
 
 # Plot UMAP.
@@ -93,8 +93,6 @@ source("scripts/testing_scripts/ggradar/R/CalculateGroupPath.R")
 source("scripts/testing_scripts/ggradar/R/CalculateAxisPath.R")
 source("scripts/testing_scripts/ggradar/R/funcCircleCoords.R")
 
-
-
 summarize_data = function(data, grouping_category) {
   ignore_cells = c()
   summary_stats = data@meta.data %>%
@@ -110,7 +108,6 @@ summarize_data = function(data, grouping_category) {
   return(summary_stats)
 }
 
-# All patients ------------------------------------------------------------
 summary_stats = summarize_data(diet_seurat_trimmed, "MUTATION.GROUP")
 
 radar_stats = summary_stats %>%
@@ -196,16 +193,11 @@ make_radar = function(data, sample_genotype) {
 
 make_radar(tet2_for_radar, "TET2")
 make_radar(dnmt3a_for_radar, "DNMT3A")
-
-
 ```
 
 
-# Plot UMAP.
+# Plot UMAP for all cells from all patients.
 ```{r}
-
-# All patients plot ---------------------------------------------------------
-
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "CD14 Monos"] = "CD14+ Monocytes"
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "CD16 Monos"] = "CD16+ Monocytes"
 diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type == "B"] = "B cells"
@@ -220,15 +212,13 @@ diet_seurat_trimmed@meta.data$cell_type[diet_seurat_trimmed@meta.data$cell_type 
 
 filename = paste0(output_dir, "umap_all_data")
 save_plot(all_data_umap, filename, height = 2.5, width = 4, png = TRUE)
-
 ```
-
-
 
 # Plot UMAP labeled by mutant status.
 ```{r}
-# DNMT3A CH-21-046
-# TET2 CH-21-014
+# CH-21-046 is DNMT3A
+# CH-21-014 is TET2
+
 mutant_data = readRDS("../SC_CHIP_HIV_Diabetes/input_data/seurat_with_clones_PB_10.16.23.rds")
 mutant_data$MUTATION.GROUP[mutant_data$MUTATION.GROUP == "none"] = "Control"
 mutant_data@meta.data = mutant_data@meta.data %>%
@@ -257,7 +247,6 @@ dnmt3a_mutant_filename = paste0(output_dir, "mutant_umap_dnmt3a")
 
 save_plot(tet2_mutant_umap, tet2_mutant_filename, height = 2.5, width = 3.75, png = TRUE)
 save_plot(dnmt3a_mutant_umap, dnmt3a_mutant_filename, height = 2.5, width = 3.75, png = TRUE)
-
 ```
 
 # Plot heatmap.
@@ -317,7 +306,7 @@ save_plot(feature_plot, filename, height = 8, width = 8, png = TRUE)
 
 ```
 
-# Plot violin.
+# Plot violins.
 ```{r}
 Idents(diet_seurat_trimmed) = "MUTATION.GROUP"
 
@@ -356,8 +345,6 @@ make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "SAMD9", "CD14+ Monocytes", "DNMT
 make_vln_plot(tet2_diet_seurat_trimmed_stim, "NRG1", "CD14+ Monocytes", "TET2")
 make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "NRG1", "CD14+ Monocytes", "DNMT3A")
 make_vln_plot(dnmt3a_diet_seurat_trimmed_stim, "EMP1", "CD14+ Monocytes", "DNMT3A")
-
-
 ```
 
 # Plot violin have patient stim/unstim side by side.
@@ -374,7 +361,6 @@ Idents(stim_matched_subset) = "cell_type"
 save_plot(cxcl8_plot, "figures/violins/stim_cd14_monos_cxcl8_violin", width = 6)
 save_plot(il1b_plot, "figures/violins/stim_cd14_monos_il1b_violin", width = 6)
 save_plot(ptgs2_plot, "figures/violins/stim_cd14_monos_ptgs2_violin", width = 6)
-
 ```
 
 
@@ -394,9 +380,8 @@ save_plot(overlaid_plot, filename, height = 4, width = 13, png = TRUE)
 ```
 
 # Plot mutation upset.
+# This section relies on the changes to diet_seurat_trimmed@meta.data made in the patient level umap section.
 ```{r}
-# this section relies on the changes to diet_seurat_trimmed@meta.data made in the patient level umap section
-
 get_mutations = function(mutation) {
   mutations = str_split(mutation, ", ")
   mutation_vector = lapply(mutations, str_extract, pattern = "[^ ]+")
@@ -442,7 +427,6 @@ tp53_vaf = c()
 none_vaf = c()
 
 full_data = c("Entry", "VAF", "Mutation_Group")
-  
   
 for (i in 1:length(mutation_data$Mutations)) {
   entry = mutation_data$Mutations[i] %>% unlist()
@@ -544,54 +528,7 @@ write_tsv(full_data, paste0(gsub("figures", "tables", filename), ".tsv"))
 
 ```
 
-# Represent metacells
-```{r}
-library(MuDataSeurat)
-
-make_metacells_fig = function(path_to_data, path_to_labels, title, output_path) {
-  data = ReadH5AD(path_to_data)
-  data_labels = read_csv(path_to_labels)
-
-  relevant_metadata = diet_seurat_trimmed@meta.data %>%
-    rownames_to_column("cell_ID") %>%
-    dplyr::select(cell_ID, cell_type, GROUP) %>%
-    inner_join(data_labels, by = c(cell_ID = "...1")) %>%
-    filter(metacell != -1)
-  
-  
-  relevant_metadata_summarised = relevant_metadata %>%
-    group_by(cell_type, GROUP, metacell) %>%
-    summarize(count = n())
-  
-  
-  celltypes_for_metacells = relevant_metadata_summarised %>%
-    group_by(GROUP, metacell) %>%
-    mutate(proportion = count / sum(count)) %>%
-    dplyr::slice(which.max(proportion)) %>%
-    filter(proportion >= 0.8)
-  
-  data@meta.data$metacell = rownames(data@meta.data) %>% as.numeric()
-  data@meta.data = data@meta.data %>%
-    inner_join(celltypes_for_metacells)
-  
-  (metacells_plot = ggplot(data@meta.data, aes(x = umap_x, y = umap_y, color = cell_type)) +
-    geom_point() +
-    theme_bw() +
-    scale_color_manual(values = brewer.pal(8, "Paired")) +
-    ggtitle(title) +
-    labs(color = "Cell type"))
-  
-  save_plot(metacells_plot, output_path, width = 6)
-}
-
-
-make_metacells_fig(path_to_data = "h5ad_files/tet2_stim_for_seurat.h5ad", path_to_labels = "metacells/tet2_stim_metacells.csv", title = "TET2 +IL6 Metacells", output_path = "figures/metacells/tet2_stim_metacells")
-make_metacells_fig(path_to_data = "h5ad_files/tet2_veh_for_seurat.h5ad", path_to_labels = "metacells/tet2_veh_metacells.csv", title = "TET2 Metacells", output_path = "figures/metacells/tet2_veh_metacells")
-make_metacells_fig(path_to_data = "h5ad_files/dnmt3a_veh_for_seurat.h5ad", path_to_labels = "metacells/dnmt3a_veh_metacells.csv", title = "DNMT3A Metacells", output_path = "figures/metacells/dnmt3a_veh_metacells")
-make_metacells_fig(path_to_data = "h5ad_files/none_veh_for_seurat.h5ad", path_to_labels = "metacells/none_veh_metacells.csv", title = "Control Metacells", output_path = "figures/metacells/control_veh_metacells")
-
-```
-
+# Check doublet rate by lane.
 ```{r}
 diet_seurat = readRDS("rds_objects/diet_seurat.rds")
 seurat_df_harmony_keep_0_75_annotated = readRDS("rds_objects/seurat_df_harmony_keep_0_75_annotated.rds")

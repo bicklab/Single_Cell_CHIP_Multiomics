@@ -13,12 +13,14 @@ library(DropletUtils)
 library(Matrix)
 ```
 
-# Trim excessive data and clear remaining doublets.
+# Trim excessive data.
 ```{r}
-#diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
-#saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
+diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
+saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
+```
 
-# need some more stringent removal of doublets for one lane
+# Lane 7079-3 had an overabundance of doublets, so setting doublet filter higher for that lane.
+```{r}
 pANN_frame = read_tsv("input_data/pANN_frame.tsv") %>% as.data.frame()
 rownames(pANN_frame) = pANN_frame$cell_ID
 diet_seurat_trimmed = AddMetaData(diet_seurat, pANN_frame)
@@ -30,11 +32,10 @@ cells_to_remove = diet_seurat_trimmed@meta.data %>%
 
 diet_seurat_trimmed = diet_seurat_trimmed[,!colnames(diet_seurat_trimmed) %in% cells_to_remove]
 saveRDS(diet_seurat_trimmed, "rds_objects/diet_seurat_trimmed.rds")
-
 ```
 
+# Save files in 10X format (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files).
 ```{r}
-# save files (followed explanation here: https://www.biomage.net/blog/how-to-demultiplex-a-seurat-object-and-convert-it-to-10x-files)
 diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
 
 DefaultAssay(diet_seurat_trimmed) <- "RNA"
@@ -48,12 +49,9 @@ demultiplex_convert_to_10x = function(obj, samples) {
       }
 }
 
-
-
 ```
 
-
-# Split and save by CHIP/control.
+# Split and save by CHIP/control status.
 ```{r}
 diet_seurat_trimmed@meta.data$Cell_Type_Group = paste(diet_seurat_trimmed@meta.data$cell_type, diet_seurat_trimmed@meta.data$GROUP)
 diet_seurat_trimmed.list = Seurat::SplitObject(diet_seurat_trimmed, split.by = "Cell_Type_Group")
@@ -63,8 +61,7 @@ demultiplex_convert_to_10x(obj = diet_seurat_trimmed.list, samples = sample.name
 
 ```
 
-
-# Split and save by TET2/SRSF2 and TET2.
+# Split and save by TET2/SRSF2 and TET2 status.
 ```{r}
 diet_seurat_trimmed = readRDS("rds_objects/diet_seurat_trimmed.rds")
 

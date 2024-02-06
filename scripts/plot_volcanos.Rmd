@@ -8,16 +8,21 @@ date: '2023-10-20'
 ```{r setup}
 knitr::opts_knit$set(root.dir = "~/Alyssa/Single_Cell_CHIP/")
 source("../scripts/image_formatting.R")
+
 library(clusterProfiler)
 library(tidyverse)
+library(UpSetR)
+library(gridExtra)
+library(egg)
+library(RColorBrewer)
+library(ggrepel)
+
 output_dir = "figures/pathway_analysis/"
 output_dir_all = "figures/pathway_analysis_all/"
-
 ```
 
-
+# Read in data and prep variables.
 ```{r}
-library("UpSetR")
 folder = "tables/gse_results/"
 dnmt3a_pattern = paste0("DNMT3A.*_VEH_gse.tsv")
 
@@ -54,14 +59,8 @@ geneset_reference = lapply(append(tet2_veh_data, dnmt3a_veh_data), dplyr::select
   mutate(core_enrichment = strsplit(core_enrichment, "/"))
 ```
 
-
 # Volcano plots.
 ```{r}
-library(gridExtra)
-library(egg)
-library(RColorBrewer)
-library(ggrepel)
-
 plot_volcano = function(sample_genotype, cell_type, stim_status) {
   regex_cell_type_name = gsub("\\+", "\\\\+", cell_type)
   folder = "tables/metacells_de_cell_types/"
@@ -99,11 +98,9 @@ plot_volcano = function(sample_genotype, cell_type, stim_status) {
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()))
   return(volcano_plot)
 }
-
 ```
-
+# Make plots.
 ```{r}
-
 full_geneset_labels = readxl::read_excel("input_data/geneset_labels.xlsx") %>%
   inner_join(geneset_reference, by = c(Pathway = "Description")) %>%
   unnest(core_enrichment) %>%
@@ -118,7 +115,6 @@ get_color = function(gene) {
   return(color[1])
 }
 
-
 make_combined_plots = function(cell_type) {
   (veh_volcano_tet2 = plot_volcano("TET2", cell_type, stim_status = "VEH") + guides(color = "none") + theme(plot.title = element_text(face = "bold")))
   (veh_volcano_dnmt3a = plot_volcano("DNMT3A", cell_type, stim_status = "VEH") + labs(color = "Pathway") + theme(legend.position = c(0.35, 0.8), legend.background = element_blank(), legend.key.size = unit(0.15, "cm"), plot.title = element_text(face = "bold")))
@@ -128,13 +124,11 @@ make_combined_plots = function(cell_type) {
 }
 
 make_combined_plots("CD14 Monos")
-make_combined_plots("CD4+ T cells")
-make_combined_plots("CD8+ T cells")
 make_combined_plots("NK")
 make_combined_plots("B")
 ```
 
-
+# Make T cell-specific plots.
 ```{r}
 full_geneset_labels = readxl::read_excel("input_data/t_cell_geneset_labels.xlsx") %>%
   inner_join(geneset_reference, by = c(Pathway = "Description")) %>%

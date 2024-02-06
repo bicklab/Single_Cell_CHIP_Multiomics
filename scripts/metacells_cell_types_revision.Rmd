@@ -12,7 +12,7 @@ library(Seurat)
 library(DESeq2)
 library(SingleCellExperiment)
 library(scuttle)
-#library(apeglm)
+library(apeglm)
 ```
 
 # Get counts.
@@ -89,8 +89,6 @@ get_cell_type_data_for_clumping = function(cell_type_name) {
   cell_type_agg_sce = aggregateAcrossCells(cell_type_sce, ids = colData(cell_type_sce)[,c("MUTATION.SUBGROUP", "metacell")])
   return(cell_type_agg_sce)
 }
-
-
 ```
 
 
@@ -108,7 +106,5 @@ run_chip_comparisons = function(cell_type_name) {
 }
 
 run_chip_comparisons("CD14 Monos")
-
-
 ```
 

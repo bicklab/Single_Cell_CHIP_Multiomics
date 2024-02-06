@@ -18,6 +18,7 @@ organism = "org.Hs.eg.db"
 library(organism, character.only = TRUE)
 ```
 
+# Define function for pathway analysis.
 ```{r}
 find_pathways = function(folder, input_file, use_cutoff = TRUE) {
   
@@ -49,10 +50,8 @@ find_pathways = function(folder, input_file, use_cutoff = TRUE) {
     return("Error.")
   })
 }
-
 ```
-
-
+# Run pathway analysis.
 ```{r}
 find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "DNMT3A B Mutant vs Control.csv")
 find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file = "TET2 B Mutant vs Control.csv")
@@ -70,12 +69,10 @@ find_pathways(folder = "tables/pooled_mutant_vs_control_10_20_23/", input_file =
 
 # Generate plots.
 ```{r}
-
 save_plot = function(plot, file, legend = TRUE, width = 4, height = 4, png = FALSE) {
   if (png) { ggsave(plot = plot, filename =  paste0(file, ".png"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in') }
   ggsave(plot = plot, filename =  paste0(file, ".pdf"), dpi = 600, width = ifelse(legend, width, width - 1.5), height = height, units = 'in')
 }
-
 
 generate_pathway_plots = function(path_to_rds, title, sample_genotype, show_category = 4) {
   # Read in data.
@@ -101,11 +98,10 @@ generate_pathway_plots = function(path_to_rds, title, sample_genotype, show_cate
     message(cond)
     return("Error rendering plot.")
   })
-  
-  
 }
 ```
 
+# Run figure generation.
 ```{r}
 generate_pathway_plots("tables/gse_results_mut/TET2_CD14_Mutant_vs_Control_gse.rds", "TET2 mutant CD14+ monocytes vs control monocytes", "TET2", show_category = c("positive regulation of leukocyte activation", "positive regulation of cell activation", "regulation of leukocyte activation", "leukocyte cell-cell adhesion"))
 

@@ -15,12 +15,14 @@ library(scuttle)
 library(apeglm)
 ```
 
-# Trim excessive data and clear remaining doublets.
+# Trim excessive data.
 ```{r}
-#diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
-#saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
+diet_seurat = DietSeurat(scaled_filtered_annotated_seurat, assays = "RNA")
+saveRDS(diet_seurat, "rds_objects/diet_seurat.rds")
+```
 
-# need some more stringent removal of doublets for one lane
+# Lane 7079-3 needs more stringent doublet removal.
+```{r}
 pANN_frame = read_tsv("input_data/pANN_frame.tsv") %>% as.data.frame()
 rownames(pANN_frame) = pANN_frame$cell_ID
 diet_seurat_trimmed = AddMetaData(diet_seurat, pANN_frame)
@@ -32,7 +34,6 @@ cells_to_remove = diet_seurat_trimmed@meta.data %>%
 
 diet_seurat_trimmed = diet_seurat_trimmed[,!colnames(diet_seurat_trimmed) %in% cells_to_remove]
 saveRDS(diet_seurat_trimmed, "rds_objects/diet_seurat_trimmed.rds")
-
 ```
 
 # Get counts.
@@ -101,10 +102,7 @@ get_cell_type_data_for_clumping = function(cell_type_name) {
   cell_type_agg_sce = aggregateAcrossCells(cell_type_sce, ids = colData(cell_type_sce)[,c("GROUP", "metacell")])
   return(cell_type_agg_sce)
 }
-
-
 ```
-
 
 # Run differential expression.
 ```{r}
@@ -129,10 +127,9 @@ lapply(cell_types, run_chip_comparisons)
 
 run_chip_comparisons("NK")
 run_chip_comparisons("B")
-
 ```
 
-
+# Generate violin plots.
 ```{r}
 library(scater)
 library(RColorBrewer)
@@ -185,6 +182,7 @@ make_vln_plots(cell_type = "CD8+ T cells", genotype = "DNMT3A", genotype_gene_li
 
 ```
 
+# Get summary values for genes of interest.
 ```{r}
 library(scater)
 library(RColorBrewer)
