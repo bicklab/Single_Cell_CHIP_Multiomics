@@ -124,31 +124,3 @@ gc()
 demultiplex_convert_to_10x(obj = diet_seurat_trimmed.list, samples = sample.names)
 ```
 
-
-
-# We attempted metacells2 for mutated/wt cells but there were not enough cells to have power for comparison.
-```{r}
-dnmt3a_mutant_seu = readRDS("rds_objects/DNMT3Amutant_seu.rds")
-
-DefaultAssay(dnmt3a_mutant_seu) = "RNA"
-dnmt3a_mutant_seu@meta.data$CLONE = paste0("DNMT3A_", dnmt3a_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", dnmt3a_mutant_seu@meta.data$cell_type))
-
-dnmt3a_mutant_seu.list = Seurat::SplitObject(dnmt3a_mutant_seu, split.by = "CLONE")
-sample.names = unique(dnmt3a_mutant_seu$CLONE)
-
-demultiplex_convert_to_10x(obj = dnmt3a_mutant_seu.list, samples = sample.names)
-
-```
-
-```{r}
-tet2_mutant_seu = readRDS("rds_objects/TET2mutant_seu.rds")
-
-DefaultAssay(tet2_mutant_seu) = "RNA"
-tet2_mutant_seu@meta.data$CLONE = paste0("TET2_", tet2_mutant_seu@meta.data$CLONE, "_", gsub(" ", "_", tet2_mutant_seu@meta.data$cell_type))
-
-tet2_mutant_seu.list = Seurat::SplitObject(tet2_mutant_seu, split.by = "CLONE")
-sample.names = unique(tet2_mutant_seu$CLONE)
-
-demultiplex_convert_to_10x(obj = tet2_mutant_seu.list, samples = sample.names)
-
-```

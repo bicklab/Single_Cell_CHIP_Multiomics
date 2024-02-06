@@ -1,9 +1,6 @@
 
-
-## install metacells
 # pip install metacells
 
-## import libraries for visualization
 import metacells as mc
 import anndata as ad
 import matplotlib.pyplot as plt
@@ -17,8 +14,6 @@ import scanpy
 from math import hypot
 from matplotlib.collections import LineCollection
 
-
-print(os.getcwd())
 os.chdir("Alyssa/Single_Cell_CHIP")
     
 def run_metacells(group_name, target_metacell_size=160000):
@@ -99,13 +94,13 @@ def run_metacells(group_name, target_metacell_size=160000):
 
 
 
-# run_metacells("NK DNMT3A VEH")
-# run_metacells("NK TET2 VEH")
-# run_metacells("NK none VEH")
-# 
+run_metacells("NK DNMT3A VEH")
+run_metacells("NK TET2 VEH")
+run_metacells("NK none VEH")
+
 run_metacells("B DNMT3A VEH")
-# run_metacells("B TET2 VEH")
-# run_metacells("B none VEH")
+run_metacells("B TET2 VEH")
+run_metacells("B none VEH")
 
 run_metacells("CD14 Monos TET2 VEH")
 run_metacells("CD14 Monos TET2_SRSF2 VEH")

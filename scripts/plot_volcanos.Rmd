@@ -96,14 +96,6 @@ plot_volcano = function(sample_genotype, cell_type, stim_status) {
     ylim(0,40) +
     scale_color_manual(values = c(rev(brewer.pal(12, "Paired")[c(1:4)])[c(1:length(highlight_labels))], "lightgrey")) + #changed to 5:12 for 2
     ggtitle(paste0(sample_genotype, " ", cell_type_for_title, ifelse(stim_status == "STIM", " +IL6", ""))) +
-   #  # negative labels
-   #  geom_label_repel(data = exp_data %>% arrange(desc(-log10(padj))) %>% filter(log2FoldChange < -1) %>% head(10), aes(label = gene), , size = 3,
-   #                   fill = NA, direction = "y", max.overlaps =  Inf, nudge_x = 0.05, segment.alpha = 0.25, force_pull = 0, xlim = c(-4.5,-3.5), ylim = c(15,40),
-   #                   show.legend = FALSE, box.padding = 0, segment.linetype = "solid", label.size = 0.08, segment.curvature = -1e-40) +
-   # # positive labels
-   #  geom_label_repel(data = exp_data %>% arrange(desc(-log10(padj))) %>% filter(log2FoldChange > 1) %>% head(10), aes(label = gene), , size = 3,
-   #                   fill = NA, direction = "y", max.overlaps =  Inf, nudge_x = 0.05, segment.alpha = 0.25, force_pull = 0, xlim = c(3.5,4.5), ylim = c(15,40),
-   #                   show.legend = FALSE, box.padding = 0, segment.linetype = "solid", label.size = 0.08, segment.curvature = 1e-40) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()))
   return(volcano_plot)
 }

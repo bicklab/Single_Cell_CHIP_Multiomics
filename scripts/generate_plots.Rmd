@@ -88,10 +88,10 @@ save_plot(umap_patient_level_plot, filename, height = 8, width = 8.5, png = TRUE
 
 # Plot radar.
 ```{r}
-source("scripts/ggradar/R/ggradar.R")
-source("scripts/ggradar/R/CalculateGroupPath.R")
-source("scripts/ggradar/R/CalculateAxisPath.R")
-source("scripts/ggradar/R/funcCircleCoords.R")
+source("scripts/testing_scripts/ggradar/R/ggradar.R")
+source("scripts/testing_scripts/ggradar/R/CalculateGroupPath.R")
+source("scripts/testing_scripts/ggradar/R/CalculateAxisPath.R")
+source("scripts/testing_scripts/ggradar/R/funcCircleCoords.R")
 
 
 
